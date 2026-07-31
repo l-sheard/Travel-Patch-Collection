@@ -2,6 +2,7 @@ import { useState, type FormEvent, type ReactNode } from 'react'
 import PhotoCapture from './PhotoCapture'
 import CompanionsInput from './CompanionsInput'
 import AccommodationsInput from './AccommodationsInput'
+import HolidayTypeInput from './HolidayTypeInput'
 import LocationPicker from './LocationPicker'
 import CountryInput from './CountryInput'
 import StarRating from './StarRating'
@@ -42,6 +43,7 @@ export default function PatchForm({
   const [review, setReview] = useState(initialValues?.review ?? '')
   const [itinerary, setItinerary] = useState(initialValues?.itinerary ?? '')
   const [highlights, setHighlights] = useState(initialValues?.highlights ?? '')
+  const [holidayTypes, setHolidayTypes] = useState<string[]>(initialValues?.holiday_types ?? [])
   const [tripName, setTripName] = useState(initialTripName ?? '')
   const [patchPhotoFiles, setPatchPhotoFiles] = useState<File[]>([])
   const [tripPhotos, setTripPhotos] = useState<File[]>([])
@@ -91,6 +93,7 @@ export default function PatchForm({
           review: review?.trim() || null,
           itinerary: itinerary?.trim() || null,
           highlights: highlights?.trim() || null,
+          holiday_types: holidayTypes,
         },
         patchPhotoFiles[0] ?? null,
         tripPhotos,
@@ -165,6 +168,10 @@ export default function PatchForm({
             <option key={trip.id} value={trip.name} />
           ))}
         </datalist>
+      </Field>
+
+      <Field label="Type of holiday">
+        <HolidayTypeInput value={holidayTypes} onChange={setHolidayTypes} />
       </Field>
 
       <Field label="Travelled with">

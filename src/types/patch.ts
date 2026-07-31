@@ -36,6 +36,7 @@ export type Patch = {
   review: string | null
   itinerary: string | null
   highlights: string | null
+  holiday_types: string[]
   created_at: string
   updated_at: string
 }
@@ -71,6 +72,7 @@ export type NewPatchInput = Pick<
   | 'review'
   | 'itinerary'
   | 'highlights'
+  | 'holiday_types'
 > & { geocode_raw?: unknown }
 
 export type NewTripInput = Pick<Trip, 'name' | 'itinerary' | 'highlights' | 'trip_review' | 'rating'>

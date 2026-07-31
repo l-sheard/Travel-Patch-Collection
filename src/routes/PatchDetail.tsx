@@ -216,6 +216,19 @@ export default function PatchDetail() {
           {patch.purchased_date && <DateStamp label="Purchased" value={formatDate(patch.purchased_date)!} />}
         </div>
 
+        {patch.holiday_types.length > 0 && (
+          <div className="mb-5">
+            <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-ink/40">Type of holiday</p>
+            <div className="flex flex-wrap gap-2">
+              {patch.holiday_types.map((type) => (
+                <span key={type} className="rounded-full bg-teal/10 px-2.5 py-1 text-xs font-medium text-teal-dark">
+                  {type}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
         {patch.companions.length > 0 && (
           <div className="mb-5">
             <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-ink/40">Travelled with</p>

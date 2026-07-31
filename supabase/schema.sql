@@ -42,6 +42,10 @@ alter table patches add column if not exists review text;
 alter table patches add column if not exists itinerary text;
 alter table patches add column if not exists highlights text;
 
+-- Free-form tags from a fixed vocabulary (see src/lib/holidayTypes.ts) —
+-- text[] rather than an enum so the app-side list can grow without a migration.
+alter table patches add column if not exists holiday_types text[] not null default '{}';
+
 create or replace function set_updated_at()
 returns trigger
 language plpgsql
