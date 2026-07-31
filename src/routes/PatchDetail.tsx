@@ -1,6 +1,7 @@
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { StampIcon } from '../components/layout/icons'
 import LoadingStamp from '../components/LoadingStamp'
+import PatchMap from '../components/LazyPatchMap'
 import PlaceholderPage from '../components/PlaceholderPage'
 import { useDeletePatch, usePatch } from '../hooks/usePatches'
 import { usePatchPhotos } from '../hooks/usePatchPhotos'
@@ -137,11 +138,18 @@ export default function PatchDetail() {
         )}
 
         {patch.description && (
-          <div>
+          <div className="mb-5">
             <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-ink/40">Notes</p>
             <p className="whitespace-pre-wrap rounded-xl border border-dashed border-ink/15 p-3 text-sm text-ink/80">
               {patch.description}
             </p>
+          </div>
+        )}
+
+        {patch.lat != null && patch.lng != null && (
+          <div>
+            <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-ink/40">Location</p>
+            <PatchMap patches={[patch]} className="h-48" />
           </div>
         )}
       </div>
