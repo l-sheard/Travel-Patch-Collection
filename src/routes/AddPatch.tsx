@@ -3,11 +3,13 @@ import { PlusIcon } from '../components/layout/icons'
 import PatchForm from '../components/PatchForm'
 import { useCreatePatch } from '../hooks/usePatches'
 import { useUploadPatchPhoto } from '../hooks/usePatchPhotos'
+import { useResolveTripId } from '../hooks/useTrips'
 
 export default function AddPatch() {
   const navigate = useNavigate()
   const createPatch = useCreatePatch()
   const uploadPhoto = useUploadPatchPhoto()
+  const resolveTripId = useResolveTripId()
 
   return (
     <div className="mx-auto max-w-xl">
@@ -21,8 +23,9 @@ export default function AddPatch() {
       <PatchForm
         submitLabel="Save patch"
         requirePatchPhoto
-        onSubmit={async (values, patchPhoto, tripPhotos) => {
-          const patch = await createPatch.mutateAsync(values)
+        onSubmit={async (values, patchPhoto, tripPhotos, tripName) => {
+          const trip_id = await resolveTripId(tripName)
+          const patch = await createPatch.mutateAsync({ ...values, trip_id })
           if (patchPhoto) {
             await uploadPhoto.mutateAsync({ patchId: patch.id, file: patchPhoto, isCover: true })
           }

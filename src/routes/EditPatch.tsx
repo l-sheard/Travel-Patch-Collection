@@ -4,15 +4,18 @@ import PatchForm from '../components/PatchForm'
 import PlaceholderPage from '../components/PlaceholderPage'
 import { usePatch, useUpdatePatch } from '../hooks/usePatches'
 import { useUploadPatchPhoto } from '../hooks/usePatchPhotos'
+import { useResolveTripId, useTrip } from '../hooks/useTrips'
 
 export default function EditPatch() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { data: patch, isLoading } = usePatch(id)
+  const { data: currentTrip, isLoading: tripLoading } = useTrip(patch?.trip_id)
   const updatePatch = useUpdatePatch()
   const uploadPhoto = useUploadPatchPhoto()
+  const resolveTripId = useResolveTripId()
 
-  if (isLoading) {
+  if (isLoading || (patch?.trip_id && tripLoading)) {
     return <PlaceholderPage icon={StampIcon} title="Loading…" description="Fetching this patch's details." />
   }
 
@@ -31,9 +34,11 @@ export default function EditPatch() {
 
       <PatchForm
         initialValues={patch}
+        initialTripName={currentTrip?.name}
         submitLabel="Save changes"
-        onSubmit={async (values, patchPhoto, tripPhotos) => {
-          await updatePatch.mutateAsync({ id: patch.id, input: values })
+        onSubmit={async (values, patchPhoto, tripPhotos, tripName) => {
+          const trip_id = await resolveTripId(tripName)
+          await updatePatch.mutateAsync({ id: patch.id, input: { ...values, trip_id } })
           if (patchPhoto) {
             await uploadPhoto.mutateAsync({ patchId: patch.id, file: patchPhoto, isCover: true })
           }

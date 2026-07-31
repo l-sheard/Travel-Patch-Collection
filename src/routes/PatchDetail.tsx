@@ -2,12 +2,14 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { StampIcon } from '../components/layout/icons'
 import LoadingStamp from '../components/LoadingStamp'
+import PatchCard from '../components/PatchCard'
 import PatchMap from '../components/LazyPatchMap'
 import PlaceholderPage from '../components/PlaceholderPage'
 import { useAuth } from '../context/AuthProvider'
 import { useDeletePatch, usePatch } from '../hooks/usePatches'
 import { usePatchPhotos } from '../hooks/usePatchPhotos'
 import { usePhotoUrl } from '../hooks/usePhotoUrl'
+import { useTrip, useTripSiblingPatches } from '../hooks/useTrips'
 import { reprocessGalleryImage } from '../lib/galleryProcessing'
 import type { PatchPhoto } from '../types/patch'
 
@@ -81,6 +83,8 @@ export default function PatchDetail() {
   const navigate = useNavigate()
   const { data: patch, isLoading, isError } = usePatch(id)
   const { data: photos } = usePatchPhotos(id)
+  const { data: trip } = useTrip(patch?.trip_id)
+  const { data: tripSiblings } = useTripSiblingPatches(patch?.trip_id, patch?.id)
   const deletePatch = useDeletePatch()
 
   if (isLoading) {
@@ -119,6 +123,11 @@ export default function PatchDetail() {
           <div>
             <h1 className="font-display text-3xl font-semibold text-teal-dark">{patch.location_name}</h1>
             {patch.country && <p className="text-sm text-ink/50">{patch.country}</p>}
+            {trip && (
+              <p className="mt-1 text-xs font-medium text-terracotta-dark">
+                Part of trip: {trip.name}
+              </p>
+            )}
           </div>
           <div className="flex shrink-0 gap-2">
             <Link
@@ -182,9 +191,22 @@ export default function PatchDetail() {
         )}
 
         {patch.lat != null && patch.lng != null && (
-          <div>
+          <div className={tripSiblings && tripSiblings.length > 0 ? 'mb-5' : ''}>
             <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-ink/40">Location</p>
             <PatchMap patches={[{ ...patch, patch_photos: photos ?? [] }]} className="h-48" />
+          </div>
+        )}
+
+        {trip && tripSiblings && tripSiblings.length > 0 && (
+          <div>
+            <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-ink/40">
+              Other stops on {trip.name}
+            </p>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {tripSiblings.map((sibling) => (
+                <PatchCard key={sibling.id} patch={sibling} />
+              ))}
+            </div>
           </div>
         )}
       </div>

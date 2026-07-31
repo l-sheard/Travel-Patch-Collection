@@ -3,19 +3,28 @@ import PhotoCapture from './PhotoCapture'
 import CompanionsInput from './CompanionsInput'
 import LocationPicker from './LocationPicker'
 import CountryInput from './CountryInput'
+import { useTrips } from '../hooks/useTrips'
 import type { NewPatchInput } from '../types/patch'
 import type { GeocodeResult } from '../lib/geocode'
 
-export type PatchFormValues = NewPatchInput
+export type PatchFormValues = Omit<NewPatchInput, 'trip_id'>
 
 type Props = {
   initialValues?: Partial<PatchFormValues>
+  initialTripName?: string
   submitLabel: string
   requirePatchPhoto?: boolean
-  onSubmit: (values: PatchFormValues, patchPhoto: File | null, tripPhotos: File[]) => Promise<void>
+  onSubmit: (values: PatchFormValues, patchPhoto: File | null, tripPhotos: File[], tripName: string) => Promise<void>
 }
 
-export default function PatchForm({ initialValues, submitLabel, requirePatchPhoto, onSubmit }: Props) {
+export default function PatchForm({
+  initialValues,
+  initialTripName,
+  submitLabel,
+  requirePatchPhoto,
+  onSubmit,
+}: Props) {
+  const { data: trips } = useTrips()
   const [locationName, setLocationName] = useState(initialValues?.location_name ?? '')
   const [country, setCountry] = useState(initialValues?.country ?? '')
   const [lat, setLat] = useState<number | null>(initialValues?.lat ?? null)
@@ -26,6 +35,7 @@ export default function PatchForm({ initialValues, submitLabel, requirePatchPhot
   const [purchasedDate, setPurchasedDate] = useState(initialValues?.purchased_date ?? '')
   const [companions, setCompanions] = useState<string[]>(initialValues?.companions ?? [])
   const [description, setDescription] = useState(initialValues?.description ?? '')
+  const [tripName, setTripName] = useState(initialTripName ?? '')
   const [patchPhotoFiles, setPatchPhotoFiles] = useState<File[]>([])
   const [tripPhotos, setTripPhotos] = useState<File[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -70,6 +80,7 @@ export default function PatchForm({ initialValues, submitLabel, requirePatchPhot
         },
         patchPhotoFiles[0] ?? null,
         tripPhotos,
+        tripName.trim(),
       )
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong.')
@@ -120,6 +131,26 @@ export default function PatchForm({ initialValues, submitLabel, requirePatchPhot
           onChange={(e) => setPurchasedDate(e.target.value)}
           className={inputClass}
         />
+      </Field>
+
+      <Field label="Part of a trip?">
+        <p className="mb-1.5 -mt-0.5 text-xs font-normal text-ink/50">
+          Give it a name to link it with other patches from the same trip — e.g. "Balkans Summer 2024". Leave blank
+          for a standalone patch.
+        </p>
+        <input
+          type="text"
+          list="trip-options"
+          value={tripName}
+          onChange={(e) => setTripName(e.target.value)}
+          placeholder="e.g. Balkans Summer 2024"
+          className={inputClass}
+        />
+        <datalist id="trip-options">
+          {(trips ?? []).map((trip) => (
+            <option key={trip.id} value={trip.name} />
+          ))}
+        </datalist>
       </Field>
 
       <Field label="Travelled with">

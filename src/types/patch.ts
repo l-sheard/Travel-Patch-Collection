@@ -1,9 +1,17 @@
 export type GalleryStatus = 'pending' | 'processing' | 'done' | 'failed'
 export type PhotoRole = 'original' | 'reference'
 
+export type Trip = {
+  id: string
+  user_id: string
+  name: string
+  created_at: string
+}
+
 export type Patch = {
   id: string
   user_id: string
+  trip_id: string | null
   location_name: string
   country: string | null
   lat: number | null
@@ -43,6 +51,7 @@ export type NewPatchInput = Pick<
   | 'purchased_date'
   | 'companions'
   | 'description'
+  | 'trip_id'
 > & { geocode_raw?: unknown }
 
 export type PatchWithPhotos = Patch & { patch_photos: PatchPhoto[] }
