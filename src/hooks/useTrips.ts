@@ -74,6 +74,21 @@ export function useResolveTripId() {
   }
 }
 
+/** Trips with their patches embedded, newest first — for the Dashboard's "Recent trips" section. */
+export function useRecentTrips() {
+  return useQuery({
+    queryKey: ['trips-with-patches'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('trips')
+        .select('*, patches(*, patch_photos(*))')
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      return data as (Trip & { patches: PatchWithPhotos[] })[]
+    },
+  })
+}
+
 /** Other patches sharing the same trip, for "part of this trip" links on Patch Detail. */
 export function useTripSiblingPatches(tripId: string | null | undefined, excludeId: string | undefined) {
   return useQuery({
