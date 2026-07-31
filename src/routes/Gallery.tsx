@@ -64,7 +64,7 @@ export default function Gallery() {
             />
           </label>
 
-          {presentContinents.length > 1 && (
+          {presentContinents.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {(['All', ...presentContinents] as const).map((c) => (
                 <button
