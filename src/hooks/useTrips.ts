@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabaseClient'
-import type { PatchWithPhotos, Trip } from '../types/patch'
+import type { NewTripInput, PatchWithPhotos, Trip } from '../types/patch'
 import { useAuth } from '../context/AuthProvider'
 
 const TRIPS_KEY = ['trips']
@@ -40,6 +40,21 @@ export function useCreateTrip() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: TRIPS_KEY })
+    },
+  })
+}
+
+export function useUpdateTrip() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, input }: { id: string; input: Partial<NewTripInput> }) => {
+      const { data, error } = await supabase.from('trips').update(input).eq('id', id).select().single()
+      if (error) throw error
+      return data as Trip
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: TRIPS_KEY })
+      queryClient.invalidateQueries({ queryKey: ['trip', data.id] })
     },
   })
 }

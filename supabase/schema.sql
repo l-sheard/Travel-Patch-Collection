@@ -31,6 +31,11 @@ create table if not exists patches (
 
 create index if not exists patches_user_id_idx on patches (user_id);
 
+-- Where you stayed for this specific stop — a small bounded list scoped to
+-- one patch, so a jsonb array is simpler here than a separate table:
+-- [{ "name": "...", "url": "..." }].
+alter table patches add column if not exists accommodations jsonb not null default '[]';
+
 create or replace function set_updated_at()
 returns trigger
 language plpgsql
@@ -77,6 +82,11 @@ create table if not exists trips (
 );
 
 create index if not exists trips_user_id_idx on trips (user_id);
+
+-- Trip-level journal fields, shared across every patch/stop on the trip.
+alter table trips add column if not exists itinerary text;
+alter table trips add column if not exists highlights text;
+alter table trips add column if not exists trip_review text;
 
 alter table trips enable row level security;
 

@@ -1,10 +1,11 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
 import PhotoCapture from './PhotoCapture'
 import CompanionsInput from './CompanionsInput'
+import AccommodationsInput from './AccommodationsInput'
 import LocationPicker from './LocationPicker'
 import CountryInput from './CountryInput'
 import { useTrips } from '../hooks/useTrips'
-import type { NewPatchInput } from '../types/patch'
+import type { Accommodation, NewPatchInput } from '../types/patch'
 import type { GeocodeResult } from '../lib/geocode'
 
 export type PatchFormValues = Omit<NewPatchInput, 'trip_id'>
@@ -35,6 +36,7 @@ export default function PatchForm({
   const [purchasedDate, setPurchasedDate] = useState(initialValues?.purchased_date ?? '')
   const [companions, setCompanions] = useState<string[]>(initialValues?.companions ?? [])
   const [description, setDescription] = useState(initialValues?.description ?? '')
+  const [accommodations, setAccommodations] = useState<Accommodation[]>(initialValues?.accommodations ?? [])
   const [tripName, setTripName] = useState(initialTripName ?? '')
   const [patchPhotoFiles, setPatchPhotoFiles] = useState<File[]>([])
   const [tripPhotos, setTripPhotos] = useState<File[]>([])
@@ -77,6 +79,9 @@ export default function PatchForm({
           purchased_date: purchasedDate || null,
           companions,
           description: description?.trim() || null,
+          accommodations: accommodations
+            .filter((a) => a.name.trim())
+            .map((a) => ({ name: a.name.trim(), url: a.url?.trim() || null })),
         },
         patchPhotoFiles[0] ?? null,
         tripPhotos,
@@ -157,7 +162,11 @@ export default function PatchForm({
         <CompanionsInput value={companions} onChange={setCompanions} />
       </Field>
 
-      <Field label="Description">
+      <Field label="Where we stayed (optional)">
+        <AccommodationsInput value={accommodations} onChange={setAccommodations} />
+      </Field>
+
+      <Field label="Notes">
         <textarea
           value={description ?? ''}
           onChange={(e) => setDescription(e.target.value)}
