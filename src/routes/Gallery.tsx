@@ -5,11 +5,24 @@ import ErrorState from '../components/ErrorState'
 import PatchCard from '../components/PatchCard'
 import { usePatches } from '../hooks/usePatches'
 import { CONTINENTS, getContinent, type Continent } from '../lib/continents'
+import type { PatchWithPhotos } from '../types/patch'
+
+type SortOrder = 'newest' | 'oldest'
+
+function effectiveDate(patch: PatchWithPhotos): string {
+  return patch.trip_start_date ?? patch.purchased_date ?? patch.created_at
+}
+
+function effectiveYear(patch: PatchWithPhotos): number {
+  return new Date(effectiveDate(patch)).getFullYear()
+}
 
 export default function Gallery() {
   const { data: patches, isLoading, isError } = usePatches()
   const [search, setSearch] = useState('')
   const [continent, setContinent] = useState<Continent | 'All'>('All')
+  const [year, setYear] = useState<number | 'All'>('All')
+  const [sortOrder, setSortOrder] = useState<SortOrder>('newest')
 
   const presentContinents = useMemo(() => {
     const set = new Set<Continent>()
@@ -20,10 +33,17 @@ export default function Gallery() {
     return CONTINENTS.filter((c) => set.has(c))
   }, [patches])
 
+  const presentYears = useMemo(() => {
+    const set = new Set<number>()
+    for (const patch of patches ?? []) set.add(effectiveYear(patch))
+    return Array.from(set).sort((a, b) => b - a)
+  }, [patches])
+
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase()
-    return (patches ?? []).filter((patch) => {
+    const result = (patches ?? []).filter((patch) => {
       if (continent !== 'All' && getContinent(patch.country) !== continent) return false
+      if (year !== 'All' && effectiveYear(patch) !== year) return false
       if (!query) return true
       const haystack = [patch.location_name, patch.country, patch.description, ...patch.companions]
         .filter(Boolean)
@@ -31,10 +51,17 @@ export default function Gallery() {
         .toLowerCase()
       return haystack.includes(query)
     })
-  }, [patches, search, continent])
+
+    result.sort((a, b) => {
+      const diff = new Date(effectiveDate(a)).getTime() - new Date(effectiveDate(b)).getTime()
+      return sortOrder === 'newest' ? -diff : diff
+    })
+
+    return result
+  }, [patches, search, continent, year, sortOrder])
 
   const hasPatches = (patches?.length ?? 0) > 0
-  const hasFilters = search.trim() !== '' || continent !== 'All'
+  const hasFilters = search.trim() !== '' || continent !== 'All' || year !== 'All'
 
   return (
     <div className="flex flex-col gap-6">
@@ -53,16 +80,33 @@ export default function Gallery() {
 
       {!isLoading && !isError && hasPatches && (
         <div className="flex flex-col gap-3">
-          <label className="relative">
-            <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/40" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by location, country, companions, or notes…"
-              className="w-full rounded-full border border-ink/15 bg-white py-2 pl-9 pr-3 text-sm text-ink outline-none focus:border-teal focus:ring-2 focus:ring-teal/20"
-            />
-          </label>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <label className="relative flex-1">
+              <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/40" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search by location, country, companions, or notes…"
+                className="w-full rounded-full border border-ink/15 bg-white py-2 pl-9 pr-3 text-sm text-ink outline-none focus:border-teal focus:ring-2 focus:ring-teal/20"
+              />
+            </label>
+
+            <div className="flex shrink-0 gap-1 rounded-full border border-ink/15 bg-white p-1 text-xs font-medium">
+              {(['newest', 'oldest'] as const).map((order) => (
+                <button
+                  key={order}
+                  type="button"
+                  onClick={() => setSortOrder(order)}
+                  className={`rounded-full px-3 py-1 capitalize transition-colors ${
+                    sortOrder === order ? 'bg-teal text-cream' : 'text-ink/60 hover:text-teal-dark'
+                  }`}
+                >
+                  {order}
+                </button>
+              ))}
+            </div>
+          </div>
 
           {presentContinents.length > 0 && (
             <div className="flex flex-wrap gap-2">
@@ -78,6 +122,25 @@ export default function Gallery() {
                   }`}
                 >
                   {c}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {presentYears.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {(['All', ...presentYears] as const).map((y) => (
+                <button
+                  key={y}
+                  type="button"
+                  onClick={() => setYear(y)}
+                  className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                    year === y
+                      ? 'bg-mustard text-ink'
+                      : 'border border-ink/15 bg-white text-ink/60 hover:border-mustard/50 hover:text-ink'
+                  }`}
+                >
+                  {y}
                 </button>
               ))}
             </div>
