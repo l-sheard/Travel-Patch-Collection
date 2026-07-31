@@ -8,8 +8,24 @@ import EditPatch from './routes/EditPatch'
 import Gallery from './routes/Gallery'
 import MapView from './routes/MapView'
 import Settings from './routes/Settings'
+import SignIn from './routes/SignIn'
+import { StampIcon } from './components/layout/icons'
+import { useAuth } from './context/AuthProvider'
+
+function LoadingScreen() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-cream">
+      <StampIcon className="h-10 w-10 animate-pulse text-teal/50" />
+    </div>
+  )
+}
 
 function App() {
+  const { session, loading } = useAuth()
+
+  if (loading) return <LoadingScreen />
+  if (!session) return <SignIn />
+
   return (
     <Routes>
       <Route element={<AppShell />}>
