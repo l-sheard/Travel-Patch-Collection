@@ -31,3 +31,25 @@ Requires a `.env` file (gitignored) once Supabase is wired up in Phase 2:
 VITE_SUPABASE_URL=...
 VITE_SUPABASE_ANON_KEY=...
 ```
+
+## Deploying (Netlify)
+
+`netlify.toml` is already configured (build command, publish dir, and the
+SPA redirect rule client-side routing needs). To deploy:
+
+1. Sign up at [netlify.com](https://netlify.com) and click **Add new site →
+   Import an existing project**.
+2. Connect your GitHub account and pick this repo
+   (`l-sheard/Travel-Patch-Collection`).
+3. Build settings should auto-detect from `netlify.toml` — leave them as-is.
+4. Before the first deploy, add your Supabase credentials under **Site
+   configuration → Environment variables**:
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+   (same values as your local `.env` — these are safe to set here since
+   they're the public anon key, protected by Row Level Security, not a
+   secret key.)
+5. Deploy. Netlify will auto-redeploy on every push to `main`.
+6. On your phone, open the deployed URL in the browser and use "Add to Home
+   Screen" (Safari: Share → Add to Home Screen; Chrome/Android: menu →
+   Install app) to get the installed-PWA experience with camera access.
