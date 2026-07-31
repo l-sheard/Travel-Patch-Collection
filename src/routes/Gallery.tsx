@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { GalleryIcon, PlusIcon, SearchIcon } from '../components/layout/icons'
 import ErrorState from '../components/ErrorState'
+import FilterMenu from '../components/FilterMenu'
 import PatchCard from '../components/PatchCard'
 import { usePatches } from '../hooks/usePatches'
 import { CONTINENTS, getContinent, type Continent } from '../lib/continents'
@@ -79,20 +80,20 @@ export default function Gallery() {
       {isError && <ErrorState />}
 
       {!isLoading && !isError && hasPatches && (
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <label className="relative flex-1">
-              <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/40" />
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search by location, country, companions, or notes…"
-                className="w-full rounded-full border border-ink/15 bg-white py-2 pl-9 pr-3 text-sm text-ink outline-none focus:border-teal focus:ring-2 focus:ring-teal/20"
-              />
-            </label>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <label className="relative flex-1">
+            <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/40" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by location, country, companions, or notes…"
+              className="w-full rounded-full border border-ink/15 bg-white py-2 pl-9 pr-3 text-sm text-ink outline-none focus:border-teal focus:ring-2 focus:ring-teal/20"
+            />
+          </label>
 
-            <div className="flex shrink-0 gap-1 rounded-full border border-ink/15 bg-white p-1 text-xs font-medium">
+          <div className="flex shrink-0 gap-2">
+            <div className="flex gap-1 rounded-full border border-ink/15 bg-white p-1 text-xs font-medium">
               {(['newest', 'oldest'] as const).map((order) => (
                 <button
                   key={order}
@@ -106,45 +107,16 @@ export default function Gallery() {
                 </button>
               ))}
             </div>
+
+            <FilterMenu
+              continents={presentContinents}
+              continent={continent}
+              onContinentChange={setContinent}
+              years={presentYears}
+              year={year}
+              onYearChange={setYear}
+            />
           </div>
-
-          {presentContinents.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {(['All', ...presentContinents] as const).map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => setContinent(c)}
-                  className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                    continent === c
-                      ? 'bg-teal text-cream'
-                      : 'border border-ink/15 bg-white text-ink/60 hover:border-teal/40 hover:text-teal-dark'
-                  }`}
-                >
-                  {c}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {presentYears.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {(['All', ...presentYears] as const).map((y) => (
-                <button
-                  key={y}
-                  type="button"
-                  onClick={() => setYear(y)}
-                  className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                    year === y
-                      ? 'bg-mustard text-ink'
-                      : 'border border-ink/15 bg-white text-ink/60 hover:border-mustard/50 hover:text-ink'
-                  }`}
-                >
-                  {y}
-                </button>
-              ))}
-            </div>
-          )}
         </div>
       )}
 

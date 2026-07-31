@@ -19,6 +19,16 @@ export function SearchIcon({ className }: IconProps) {
   )
 }
 
+export function FilterIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} {...base}>
+      <path d="M4 5h16" />
+      <path d="M7 12h10" />
+      <path d="M10.5 19h3" />
+    </svg>
+  )
+}
+
 export function HomeIcon({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" className={className} {...base}>
