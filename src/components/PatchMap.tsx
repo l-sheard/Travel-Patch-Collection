@@ -3,9 +3,12 @@ import { Link } from 'react-router-dom'
 import { MapContainer, Marker, Popup, TileLayer } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import type { Patch } from '../types/patch'
+import type { Patch, PatchPhoto } from '../types/patch'
+import { usePhotoUrl } from '../hooks/usePhotoUrl'
 
-type MappablePatch = Pick<Patch, 'id' | 'location_name' | 'country' | 'lat' | 'lng'>
+type MappablePatch = Pick<Patch, 'id' | 'location_name' | 'country' | 'lat' | 'lng'> & {
+  patch_photos?: PatchPhoto[]
+}
 
 const patchIcon = L.divIcon({
   className: '',
@@ -23,6 +26,28 @@ const patchIcon = L.divIcon({
   iconAnchor: [15, 15],
   popupAnchor: [0, -15],
 })
+
+function PatchPopupContent({ patch }: { patch: MappablePatch }) {
+  const cover = patch.patch_photos?.find((p) => p.is_cover) ?? patch.patch_photos?.[0]
+  const bucket = cover?.storage_path_gallery ? 'patch-gallery' : 'patch-originals'
+  const path = cover?.storage_path_gallery ?? cover?.storage_path_original
+  const { data: url } = usePhotoUrl(bucket, path)
+
+  return (
+    <Link to={`/patches/${patch.id}`} className="block w-32">
+      <div className="mb-1.5 flex aspect-square items-center justify-center rounded-lg bg-cream-dark/60 p-1.5">
+        {url ? (
+          <img src={url} alt="" className="h-full w-full object-contain" />
+        ) : (
+          <div className="h-full w-full animate-pulse rounded bg-ink/5" />
+        )}
+      </div>
+      <p className="font-display text-sm font-semibold text-teal-dark">{patch.location_name}</p>
+      {patch.country && <p className="text-xs text-ink/50">{patch.country}</p>}
+      <span className="mt-1 inline-block text-xs font-medium text-teal hover:underline">View details</span>
+    </Link>
+  )
+}
 
 type Props = {
   patches: MappablePatch[]
@@ -51,13 +76,7 @@ export default function PatchMap({ patches, className = 'h-[70vh]' }: Props) {
         {pinned.map((patch) => (
           <Marker key={patch.id} position={[patch.lat as number, patch.lng as number]} icon={patchIcon}>
             <Popup>
-              <div className="min-w-36">
-                <p className="font-display text-sm font-semibold text-teal-dark">{patch.location_name}</p>
-                {patch.country && <p className="text-xs text-ink/50">{patch.country}</p>}
-                <Link to={`/patches/${patch.id}`} className="mt-1 inline-block text-xs font-medium text-teal hover:underline">
-                  View details
-                </Link>
-              </div>
+              <PatchPopupContent patch={patch} />
             </Popup>
           </Marker>
         ))}

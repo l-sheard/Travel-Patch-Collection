@@ -149,7 +149,7 @@ export default function PatchDetail() {
         {patch.lat != null && patch.lng != null && (
           <div>
             <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-ink/40">Location</p>
-            <PatchMap patches={[patch]} className="h-48" />
+            <PatchMap patches={[{ ...patch, patch_photos: photos ?? [] }]} className="h-48" />
           </div>
         )}
       </div>
