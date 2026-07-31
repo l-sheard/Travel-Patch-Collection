@@ -173,16 +173,19 @@ export default function PatchForm({
         />
       </Field>
 
-      <Field label="Price (optional)">
-        <input
-          type="number"
-          min={0}
-          step="0.01"
-          value={price}
-          onChange={(e) => setPrice(e.target.value)}
-          placeholder="e.g. 450"
-          className={inputClass}
-        />
+      <Field label="Trip cost (optional)">
+        <div className="relative">
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-ink/40">£</span>
+          <input
+            type="number"
+            min={0}
+            step="0.01"
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+            placeholder="450"
+            className={`${inputClass} pl-6`}
+          />
+        </div>
       </Field>
 
       <Field label="Part of a trip?">

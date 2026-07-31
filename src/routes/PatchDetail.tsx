@@ -159,7 +159,7 @@ function formatDate(value: string | null) {
 }
 
 function formatPrice(value: number) {
-  return value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+  return `£${value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
 }
 
 function DateStamp({ label, value }: { label: string; value: string }) {
@@ -267,7 +267,7 @@ export default function PatchDetail() {
         <div className="mb-5 flex flex-wrap gap-3">
           {tripRange && <DateStamp label="Trip" value={tripRange} />}
           {patch.purchased_date && <DateStamp label="Purchased" value={formatDate(patch.purchased_date)!} />}
-          {patch.price != null && <DateStamp label="Price" value={formatPrice(patch.price)} />}
+          {patch.price != null && <DateStamp label="Trip cost" value={formatPrice(patch.price)} />}
         </div>
 
         {patch.holiday_types.length > 0 && (

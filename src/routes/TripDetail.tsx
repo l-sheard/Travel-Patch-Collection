@@ -129,16 +129,21 @@ export default function TripDetail() {
               <StarRating value={rating} onChange={setRating} />
             </label>
             <label className="flex flex-col gap-1 text-sm font-medium text-ink/80">
-              Price
-              <input
-                type="number"
-                min={0}
-                step="0.01"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                placeholder="e.g. 2000"
-                className="rounded-xl border border-ink/15 bg-white px-3 py-2 text-sm text-ink outline-none focus:border-teal focus:ring-2 focus:ring-teal/20"
-              />
+              Trip cost
+              <div className="relative">
+                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-ink/40">
+                  £
+                </span>
+                <input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  placeholder="2000"
+                  className="w-full rounded-xl border border-ink/15 bg-white py-2 pl-6 pr-3 text-sm text-ink outline-none focus:border-teal focus:ring-2 focus:ring-teal/20"
+                />
+              </div>
             </label>
             <EditField label="Itinerary" value={itinerary} onChange={setItinerary} />
             <EditField label="Highlights" value={highlights} onChange={setHighlights} />
@@ -165,9 +170,9 @@ export default function TripDetail() {
           <div className="flex flex-col gap-5">
             {trip.price != null && (
               <div>
-                <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-ink/40">Price</p>
+                <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-ink/40">Trip cost</p>
                 <p className="text-sm text-ink/80">
-                  {trip.price.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                  £{trip.price.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
                 </p>
               </div>
             )}
