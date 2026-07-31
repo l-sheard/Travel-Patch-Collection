@@ -26,8 +26,8 @@ export type PatchPhoto = {
   storage_path_original: string
   storage_path_gallery: string | null
   gallery_status: GalleryStatus
-  embedding: number[] | null
-  phash: number | null
+  embedding: number[] | string | null
+  phash: string | null
   is_cover: boolean
   created_at: string
 }

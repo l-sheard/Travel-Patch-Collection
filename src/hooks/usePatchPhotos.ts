@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabaseClient'
 import type { PatchPhoto } from '../types/patch'
 import { useAuth } from '../context/AuthProvider'
 import { processGalleryImage } from '../lib/galleryProcessing'
+import { indexPatchPhotoForMatching } from '../lib/scanIndexing'
 
 export function usePatchPhotos(patchId: string | undefined) {
   return useQuery({
@@ -72,6 +73,12 @@ export function useUploadPatchPhoto() {
           patchId: variables.patchId,
           userId: user.id,
           originalFile: variables.file,
+          queryClient,
+        })
+        indexPatchPhotoForMatching({
+          photoId: data.id,
+          patchId: variables.patchId,
+          file: variables.file,
           queryClient,
         })
       }
