@@ -79,12 +79,22 @@ function DateStamp({ label, value }: { label: string; value: string }) {
 export default function PatchDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { data: patch, isLoading } = usePatch(id)
+  const { data: patch, isLoading, isError } = usePatch(id)
   const { data: photos } = usePatchPhotos(id)
   const deletePatch = useDeletePatch()
 
   if (isLoading) {
     return <PlaceholderPage icon={StampIcon} title="Loading…" description="Fetching this patch's details." />
+  }
+
+  if (isError) {
+    return (
+      <PlaceholderPage
+        icon={StampIcon}
+        title="Couldn't load this patch"
+        description="Something went wrong fetching it — try refreshing the page."
+      />
+    )
   }
 
   if (!patch) {

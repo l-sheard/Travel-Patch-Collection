@@ -1,10 +1,11 @@
 import { Link } from 'react-router-dom'
 import { MapIcon } from '../components/layout/icons'
+import ErrorState from '../components/ErrorState'
 import PatchMap from '../components/LazyPatchMap'
 import { usePatches } from '../hooks/usePatches'
 
 export default function MapView() {
-  const { data: patches, isLoading } = usePatches()
+  const { data: patches, isLoading, isError } = usePatches()
   const pinned = (patches ?? []).filter((p) => p.lat != null && p.lng != null)
 
   return (
@@ -16,7 +17,9 @@ export default function MapView() {
         </p>
       </div>
 
-      {!isLoading && pinned.length === 0 ? (
+      {isError ? (
+        <ErrorState />
+      ) : !isLoading && pinned.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-3xl border-2 border-dashed border-teal/30 bg-white/40 px-6 py-16 text-center">
           <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-teal/10 text-teal">
             <MapIcon className="h-8 w-8" />

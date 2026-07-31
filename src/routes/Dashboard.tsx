@@ -1,10 +1,11 @@
 import { Link } from 'react-router-dom'
 import { HomeIcon, PlusIcon } from '../components/layout/icons'
+import ErrorState from '../components/ErrorState'
 import PatchCard from '../components/PatchCard'
 import { usePatches } from '../hooks/usePatches'
 
 export default function Dashboard() {
-  const { data: patches, isLoading } = usePatches()
+  const { data: patches, isLoading, isError } = usePatches()
 
   const countryCount = new Set((patches ?? []).map((p) => p.country).filter(Boolean)).size
   const hasPatches = (patches?.length ?? 0) > 0
@@ -20,7 +21,9 @@ export default function Dashboard() {
         </p>
       </div>
 
-      {!isLoading && !hasPatches && (
+      {isError && <ErrorState />}
+
+      {!isLoading && !isError && !hasPatches && (
         <div className="flex flex-col items-center justify-center rounded-3xl border-2 border-dashed border-teal/30 bg-white/40 px-6 py-16 text-center">
           <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-teal/10 text-teal">
             <HomeIcon className="h-8 w-8" />

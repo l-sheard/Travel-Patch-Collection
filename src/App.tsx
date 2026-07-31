@@ -9,8 +9,19 @@ import Gallery from './routes/Gallery'
 import MapView from './routes/MapView'
 import Settings from './routes/Settings'
 import SignIn from './routes/SignIn'
+import PlaceholderPage from './components/PlaceholderPage'
 import { StampIcon } from './components/layout/icons'
 import { useAuth } from './context/AuthProvider'
+
+function NotFound() {
+  return (
+    <PlaceholderPage
+      icon={StampIcon}
+      title="Page not found"
+      description="That page doesn't exist — use the nav above to find your way back."
+    />
+  )
+}
 
 function LoadingScreen() {
   return (
@@ -37,6 +48,7 @@ function App() {
         <Route path="gallery" element={<Gallery />} />
         <Route path="map" element={<MapView />} />
         <Route path="settings" element={<Settings />} />
+        <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
   )
