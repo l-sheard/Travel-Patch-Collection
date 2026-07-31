@@ -1,6 +1,7 @@
 import type { QueryClient } from '@tanstack/react-query'
 import { supabase } from './supabaseClient'
 import { removePatchBackground } from './backgroundRemoval'
+import { analyzePatchPhoto } from './imageMatch'
 
 type RunArgs = {
   photoId: string
@@ -28,9 +29,22 @@ async function runGalleryRemoval({ photoId, patchId, userId, sourceBlob, queryCl
       .upload(galleryPath, resultBlob, { contentType: 'image/png', upsert: true })
     if (uploadError) throw uploadError
 
+    // Compute the scan-match signature from this same cropped, background-free
+    // image (not the raw upload) so matching compares just the patch, not
+    // whatever surface/hand/lighting it happened to be photographed against.
+    let embedding: number[] | null = null
+    let phash: string | null = null
+    try {
+      const analysis = await analyzePatchPhoto(resultBlob)
+      embedding = analysis.embedding
+      phash = analysis.phash.toString()
+    } catch (err) {
+      console.error('Failed to compute match signature for photo', photoId, err)
+    }
+
     const { error: updateError } = await supabase
       .from('patch_photos')
-      .update({ storage_path_gallery: galleryPath, gallery_status: 'done' })
+      .update({ storage_path_gallery: galleryPath, gallery_status: 'done', embedding, phash })
       .eq('id', photoId)
     if (updateError) throw updateError
   } catch (err) {

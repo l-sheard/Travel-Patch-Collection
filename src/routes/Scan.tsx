@@ -4,6 +4,7 @@ import { ScanIcon } from '../components/layout/icons'
 import LoadingStamp from '../components/LoadingStamp'
 import PatchCard from '../components/PatchCard'
 import { usePatches } from '../hooks/usePatches'
+import { removePatchBackground } from '../lib/backgroundRemoval'
 import { analyzePatchPhoto, cosineSimilarity, hammingDistance, parseEmbedding } from '../lib/imageMatch'
 import type { PatchWithPhotos } from '../types/patch'
 
@@ -16,10 +17,11 @@ type Candidate = { patch: PatchWithPhotos; score: number }
 export default function Scan() {
   const navigate = useNavigate()
   const { data: patches } = usePatches()
-  const [analyzing, setAnalyzing] = useState(false)
+  const [stage, setStage] = useState<'idle' | 'isolating' | 'comparing'>('idle')
   const [error, setError] = useState<string | null>(null)
   const [candidates, setCandidates] = useState<Candidate[] | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
+  const analyzing = stage !== 'idle'
 
   async function handleFile(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -28,11 +30,16 @@ export default function Scan() {
 
     setError(null)
     setCandidates(null)
-    setAnalyzing(true)
     setPreview(URL.createObjectURL(file))
 
     try {
-      const { embedding: scanEmbedding, phash: scanPhash } = await analyzePatchPhoto(file)
+      // Isolate the patch the same way stored reference photos are isolated
+      // (background/hand/lighting removed) so the comparison is apples-to-apples.
+      setStage('isolating')
+      const isolated = await removePatchBackground(file)
+
+      setStage('comparing')
+      const { embedding: scanEmbedding, phash: scanPhash } = await analyzePatchPhoto(isolated)
 
       const scored: Candidate[] = (patches ?? []).flatMap((patch) => {
         const cover = patch.patch_photos.find((p) => p.is_cover)
@@ -57,7 +64,7 @@ export default function Scan() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not analyze that photo.')
     } finally {
-      setAnalyzing(false)
+      setStage('idle')
     }
   }
 
@@ -84,7 +91,9 @@ export default function Scan() {
         )}
         <span className="flex items-center gap-2 font-medium text-teal-dark">
           {analyzing && <LoadingStamp className="h-5 w-5" />}
-          {analyzing ? 'Analyzing…' : 'Take or choose a photo'}
+          {stage === 'isolating' && 'Isolating patch…'}
+          {stage === 'comparing' && 'Comparing…'}
+          {stage === 'idle' && 'Take or choose a photo'}
         </span>
         <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFile} />
       </label>
