@@ -1,11 +1,14 @@
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import { StampIcon } from '../components/layout/icons'
 import LoadingStamp from '../components/LoadingStamp'
 import PatchMap from '../components/LazyPatchMap'
 import PlaceholderPage from '../components/PlaceholderPage'
+import { useAuth } from '../context/AuthProvider'
 import { useDeletePatch, usePatch } from '../hooks/usePatches'
 import { usePatchPhotos } from '../hooks/usePatchPhotos'
 import { usePhotoUrl } from '../hooks/usePhotoUrl'
+import { reprocessGalleryImage } from '../lib/galleryProcessing'
 import type { PatchPhoto } from '../types/patch'
 
 function PhotoTile({ path }: { path: string }) {
@@ -14,14 +17,27 @@ function PhotoTile({ path }: { path: string }) {
   return <img src={url} alt="" className="aspect-square w-full rounded-xl object-cover" />
 }
 
-function CoverPhoto({ photo }: { photo: PatchPhoto }) {
+function CoverPhoto({ photo, patchId }: { photo: PatchPhoto; patchId: string }) {
+  const { user } = useAuth()
+  const queryClient = useQueryClient()
   const bucket = photo.storage_path_gallery ? 'patch-gallery' : 'patch-originals'
   const path = photo.storage_path_gallery ?? photo.storage_path_original
   const { data: url } = usePhotoUrl(bucket, path)
   const isProcessing = photo.gallery_status === 'pending' || photo.gallery_status === 'processing'
 
+  function handleReprocess() {
+    if (!user) return
+    reprocessGalleryImage({
+      photoId: photo.id,
+      patchId,
+      userId: user.id,
+      storagePathOriginal: photo.storage_path_original,
+      queryClient,
+    })
+  }
+
   return (
-    <div className="relative mb-5 flex aspect-square items-center justify-center overflow-hidden rounded-2xl bg-cream-dark/60 p-4">
+    <div className="relative mb-5 flex aspect-square items-center justify-center overflow-hidden rounded-2xl bg-cream-dark/60 p-1">
       {url ? (
         <img src={url} alt="" className="h-full w-full object-contain drop-shadow" />
       ) : (
@@ -32,6 +48,15 @@ function CoverPhoto({ photo }: { photo: PatchPhoto }) {
           <LoadingStamp className="h-4 w-4" />
           Removing background…
         </div>
+      )}
+      {!isProcessing && photo.storage_path_gallery && (
+        <button
+          type="button"
+          onClick={handleReprocess}
+          className="absolute right-3 top-3 rounded-full bg-white/90 px-2.5 py-1 text-xs font-medium text-ink/70 shadow-sm hover:bg-white"
+        >
+          Reprocess background
+        </button>
       )}
     </div>
   )
@@ -107,7 +132,7 @@ export default function PatchDetail() {
           const otherPhotos = photos?.filter((p) => p.id !== cover?.id) ?? []
           return (
             <>
-              {cover && <CoverPhoto photo={cover} />}
+              {cover && <CoverPhoto photo={cover} patchId={patch.id} />}
               {otherPhotos.length > 0 && (
                 <div className="mb-5 grid grid-cols-3 gap-3 sm:grid-cols-4">
                   {otherPhotos.map((photo) => (
