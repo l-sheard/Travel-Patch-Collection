@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabaseClient'
 
-export type PhotoBucket = 'patch-originals' | 'patch-gallery'
+export type PhotoBucket = 'patch-originals' | 'patch-gallery' | 'patch-dishes'
 
 export function usePhotoUrl(bucket: PhotoBucket, path: string | null | undefined) {
   return useQuery({

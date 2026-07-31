@@ -7,11 +7,12 @@ import PlaceholderPage from '../components/PlaceholderPage'
 import { useAuth } from '../context/AuthProvider'
 import { useDeletePatch, usePatch } from '../hooks/usePatches'
 import { useDeletePatchPhoto, usePatchPhotos } from '../hooks/usePatchPhotos'
+import { useDeletePatchDish, usePatchDishes } from '../hooks/usePatchDishes'
 import { usePhotoUrl } from '../hooks/usePhotoUrl'
 import { useTrip } from '../hooks/useTrips'
 import { reprocessGalleryImage } from '../lib/galleryProcessing'
 import StarRating from '../components/StarRating'
-import type { PatchPhoto } from '../types/patch'
+import type { PatchDish, PatchPhoto } from '../types/patch'
 
 function TextSection({ label, value }: { label: string; value: string | null }) {
   if (!value) return null
@@ -105,6 +106,37 @@ function CoverPhoto({ photo, patchId }: { photo: PatchPhoto; patchId: string }) 
   )
 }
 
+function DishTile({ dish }: { dish: PatchDish }) {
+  const { data: url } = usePhotoUrl('patch-dishes', dish.storage_path)
+  const deleteDish = useDeletePatchDish()
+
+  function handleDelete() {
+    if (!confirm('Remove this dish?')) return
+    deleteDish.mutate(dish)
+  }
+
+  return (
+    <div className="flex w-24 flex-col gap-1">
+      <div className="relative h-24 w-24 overflow-hidden rounded-xl border border-ink/10">
+        {url ? (
+          <img src={url} alt={dish.name} className="h-full w-full object-cover" />
+        ) : (
+          <div className="h-full w-full animate-pulse rounded-xl bg-ink/5" />
+        )}
+        <button
+          type="button"
+          onClick={handleDelete}
+          aria-label="Remove dish"
+          className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-ink/60 text-xs text-cream hover:bg-terracotta-dark"
+        >
+          ×
+        </button>
+      </div>
+      {dish.name && <p className="truncate text-xs text-ink/70">{dish.name}</p>}
+    </div>
+  )
+}
+
 function formatDate(value: string | null) {
   if (!value) return null
   return new Date(value).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
@@ -124,6 +156,7 @@ export default function PatchDetail() {
   const navigate = useNavigate()
   const { data: patch, isLoading, isError } = usePatch(id)
   const { data: photos } = usePatchPhotos(id)
+  const { data: dishes } = usePatchDishes(id)
   const { data: trip } = useTrip(patch?.trip_id)
   const deletePatch = useDeletePatch()
 
@@ -245,24 +278,58 @@ export default function PatchDetail() {
         {patch.accommodations.length > 0 && (
           <div className="mb-5">
             <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-ink/40">Where we stayed</p>
-            <ul className="flex flex-col gap-1">
+            <div className="flex flex-col gap-2">
               {patch.accommodations.map((acc, i) => (
+                <div key={i} className="rounded-xl border border-ink/10 bg-white/60 p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    {acc.url ? (
+                      <a
+                        href={acc.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm font-medium text-teal hover:underline"
+                      >
+                        {acc.name}
+                      </a>
+                    ) : (
+                      <p className="text-sm font-medium text-ink/80">{acc.name}</p>
+                    )}
+                    {acc.rating != null && <StarRating value={acc.rating} readOnly size="text-sm" />}
+                  </div>
+                  {acc.notes && <p className="mt-1 whitespace-pre-wrap text-xs text-ink/60">{acc.notes}</p>}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {patch.restaurants.length > 0 && (
+          <div className="mb-5">
+            <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-ink/40">Good restaurants</p>
+            <ul className="flex flex-col gap-1">
+              {patch.restaurants.map((r, i) => (
                 <li key={i} className="text-sm text-ink/80">
-                  {acc.url ? (
-                    <a
-                      href={acc.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-teal hover:underline"
-                    >
-                      {acc.name}
+                  {r.url ? (
+                    <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-teal hover:underline">
+                      {r.name}
                     </a>
                   ) : (
-                    acc.name
+                    r.name
                   )}
                 </li>
               ))}
             </ul>
+          </div>
+        )}
+
+        {dishes && dishes.length > 0 && (
+          <div className="mb-5">
+            <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-ink/40">Favorite dishes</p>
+            <div className="flex flex-wrap gap-3">
+              {dishes.map((dish) => (
+                <DishTile key={dish.id} dish={dish} />
+              ))}
+            </div>
           </div>
         )}
 

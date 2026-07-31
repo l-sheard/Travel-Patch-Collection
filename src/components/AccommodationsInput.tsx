@@ -1,3 +1,4 @@
+import StarRating from './StarRating'
 import type { Accommodation } from '../types/patch'
 
 type Props = {
@@ -6,7 +7,7 @@ type Props = {
 }
 
 const inputClass =
-  'flex-1 rounded-xl border border-ink/15 bg-white px-3 py-2 text-sm text-ink outline-none focus:border-teal focus:ring-2 focus:ring-teal/20'
+  'w-full rounded-xl border border-ink/15 bg-white px-3 py-2 text-sm text-ink outline-none focus:border-teal focus:ring-2 focus:ring-teal/20'
 
 export default function AccommodationsInput({ value, onChange }: Props) {
   function updateAt(index: number, patch: Partial<Accommodation>) {
@@ -18,35 +19,47 @@ export default function AccommodationsInput({ value, onChange }: Props) {
   }
 
   function add() {
-    onChange([...value, { name: '', url: null }])
+    onChange([...value, { name: '', url: null, rating: null, notes: null }])
   }
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-3">
       {value.map((acc, i) => (
-        <div key={i} className="flex gap-2">
-          <input
-            type="text"
-            value={acc.name}
-            onChange={(e) => updateAt(i, { name: e.target.value })}
-            placeholder="Hotel or place name"
+        <div key={i} className="flex flex-col gap-2 rounded-xl border border-ink/10 bg-white/60 p-3">
+          <div className="flex items-start gap-2">
+            <div className="flex flex-1 flex-col gap-2">
+              <input
+                type="text"
+                value={acc.name}
+                onChange={(e) => updateAt(i, { name: e.target.value })}
+                placeholder="Hotel or place name"
+                className={inputClass}
+              />
+              <input
+                type="url"
+                value={acc.url ?? ''}
+                onChange={(e) => updateAt(i, { url: e.target.value || null })}
+                placeholder="Link (optional)"
+                className={inputClass}
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => removeAt(i)}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink/40 hover:text-terracotta-dark"
+              aria-label="Remove place"
+            >
+              ×
+            </button>
+          </div>
+          <StarRating value={acc.rating} onChange={(r) => updateAt(i, { rating: r })} size="text-base" />
+          <textarea
+            value={acc.notes ?? ''}
+            onChange={(e) => updateAt(i, { notes: e.target.value || null })}
+            placeholder="Notes about staying here..."
+            rows={2}
             className={inputClass}
           />
-          <input
-            type="url"
-            value={acc.url ?? ''}
-            onChange={(e) => updateAt(i, { url: e.target.value || null })}
-            placeholder="Link (optional)"
-            className={inputClass}
-          />
-          <button
-            type="button"
-            onClick={() => removeAt(i)}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink/40 hover:text-terracotta-dark"
-            aria-label="Remove place"
-          >
-            ×
-          </button>
         </div>
       ))}
 

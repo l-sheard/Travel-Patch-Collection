@@ -4,6 +4,7 @@ import PatchForm from '../components/PatchForm'
 import PlaceholderPage from '../components/PlaceholderPage'
 import { usePatch, useUpdatePatch } from '../hooks/usePatches'
 import { useUploadPatchPhoto } from '../hooks/usePatchPhotos'
+import { useAddPatchDish } from '../hooks/usePatchDishes'
 import { useResolveTripId, useTrip } from '../hooks/useTrips'
 
 export default function EditPatch() {
@@ -13,6 +14,7 @@ export default function EditPatch() {
   const { data: currentTrip, isLoading: tripLoading } = useTrip(patch?.trip_id)
   const updatePatch = useUpdatePatch()
   const uploadPhoto = useUploadPatchPhoto()
+  const addDish = useAddPatchDish()
   const resolveTripId = useResolveTripId()
 
   if (isLoading || (patch?.trip_id && tripLoading)) {
@@ -36,7 +38,7 @@ export default function EditPatch() {
         initialValues={patch}
         initialTripName={currentTrip?.name}
         submitLabel="Save changes"
-        onSubmit={async (values, patchPhoto, tripPhotos, tripName) => {
+        onSubmit={async (values, patchPhoto, tripPhotos, tripName, dishes) => {
           const trip_id = await resolveTripId(tripName)
           await updatePatch.mutateAsync({ id: patch.id, input: { ...values, trip_id } })
           if (patchPhoto) {
@@ -44,6 +46,9 @@ export default function EditPatch() {
           }
           for (const file of tripPhotos) {
             await uploadPhoto.mutateAsync({ patchId: patch.id, file, isCover: false })
+          }
+          for (const dish of dishes) {
+            await addDish.mutateAsync({ patchId: patch.id, name: dish.name.trim(), file: dish.file })
           }
           navigate(`/patches/${patch.id}`)
         }}

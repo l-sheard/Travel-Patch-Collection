@@ -2,12 +2,14 @@ import { useState, type FormEvent, type ReactNode } from 'react'
 import PhotoCapture from './PhotoCapture'
 import CompanionsInput from './CompanionsInput'
 import AccommodationsInput from './AccommodationsInput'
+import RestaurantsInput from './RestaurantsInput'
+import DishesInput, { type PendingDish } from './DishesInput'
 import HolidayTypeInput from './HolidayTypeInput'
 import LocationPicker from './LocationPicker'
 import CountryInput from './CountryInput'
 import StarRating from './StarRating'
 import { useTrips } from '../hooks/useTrips'
-import type { Accommodation, NewPatchInput } from '../types/patch'
+import type { Accommodation, NewPatchInput, Restaurant } from '../types/patch'
 import type { GeocodeResult } from '../lib/geocode'
 
 export type PatchFormValues = Omit<NewPatchInput, 'trip_id'>
@@ -17,7 +19,13 @@ type Props = {
   initialTripName?: string
   submitLabel: string
   requirePatchPhoto?: boolean
-  onSubmit: (values: PatchFormValues, patchPhoto: File | null, tripPhotos: File[], tripName: string) => Promise<void>
+  onSubmit: (
+    values: PatchFormValues,
+    patchPhoto: File | null,
+    tripPhotos: File[],
+    tripName: string,
+    dishes: PendingDish[],
+  ) => Promise<void>
 }
 
 export default function PatchForm({
@@ -39,6 +47,8 @@ export default function PatchForm({
   const [companions, setCompanions] = useState<string[]>(initialValues?.companions ?? [])
   const [description, setDescription] = useState(initialValues?.description ?? '')
   const [accommodations, setAccommodations] = useState<Accommodation[]>(initialValues?.accommodations ?? [])
+  const [restaurants, setRestaurants] = useState<Restaurant[]>(initialValues?.restaurants ?? [])
+  const [dishes, setDishes] = useState<PendingDish[]>([])
   const [rating, setRating] = useState<number | null>(initialValues?.rating ?? null)
   const [review, setReview] = useState(initialValues?.review ?? '')
   const [itinerary, setItinerary] = useState(initialValues?.itinerary ?? '')
@@ -88,7 +98,15 @@ export default function PatchForm({
           description: description?.trim() || null,
           accommodations: accommodations
             .filter((a) => a.name.trim())
-            .map((a) => ({ name: a.name.trim(), url: a.url?.trim() || null })),
+            .map((a) => ({
+              name: a.name.trim(),
+              url: a.url?.trim() || null,
+              rating: a.rating,
+              notes: a.notes?.trim() || null,
+            })),
+          restaurants: restaurants
+            .filter((r) => r.name.trim())
+            .map((r) => ({ name: r.name.trim(), url: r.url?.trim() || null })),
           rating,
           review: review?.trim() || null,
           itinerary: itinerary?.trim() || null,
@@ -98,6 +116,7 @@ export default function PatchForm({
         patchPhotoFiles[0] ?? null,
         tripPhotos,
         tripName.trim(),
+        dishes,
       )
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong.')
@@ -180,6 +199,15 @@ export default function PatchForm({
 
       <Field label="Where we stayed (optional)">
         <AccommodationsInput value={accommodations} onChange={setAccommodations} />
+      </Field>
+
+      <Field label="Good restaurants (optional)">
+        <RestaurantsInput value={restaurants} onChange={setRestaurants} />
+      </Field>
+
+      <Field label="Favorite dishes (optional)">
+        <p className="mb-1.5 -mt-0.5 text-xs font-normal text-ink/50">Add a photo and name for any memorable food.</p>
+        <DishesInput value={dishes} onChange={setDishes} />
       </Field>
 
       <Field label="Your rating">

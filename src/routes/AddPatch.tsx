@@ -3,12 +3,14 @@ import { PlusIcon } from '../components/layout/icons'
 import PatchForm from '../components/PatchForm'
 import { useCreatePatch } from '../hooks/usePatches'
 import { useUploadPatchPhoto } from '../hooks/usePatchPhotos'
+import { useAddPatchDish } from '../hooks/usePatchDishes'
 import { useResolveTripId } from '../hooks/useTrips'
 
 export default function AddPatch() {
   const navigate = useNavigate()
   const createPatch = useCreatePatch()
   const uploadPhoto = useUploadPatchPhoto()
+  const addDish = useAddPatchDish()
   const resolveTripId = useResolveTripId()
 
   return (
@@ -23,7 +25,7 @@ export default function AddPatch() {
       <PatchForm
         submitLabel="Save patch"
         requirePatchPhoto
-        onSubmit={async (values, patchPhoto, tripPhotos, tripName) => {
+        onSubmit={async (values, patchPhoto, tripPhotos, tripName, dishes) => {
           const trip_id = await resolveTripId(tripName)
           const patch = await createPatch.mutateAsync({ ...values, trip_id })
           if (patchPhoto) {
@@ -31,6 +33,9 @@ export default function AddPatch() {
           }
           for (const file of tripPhotos) {
             await uploadPhoto.mutateAsync({ patchId: patch.id, file, isCover: false })
+          }
+          for (const dish of dishes) {
+            await addDish.mutateAsync({ patchId: patch.id, name: dish.name.trim(), file: dish.file })
           }
           navigate(`/patches/${patch.id}`)
         }}

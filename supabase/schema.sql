@@ -33,8 +33,13 @@ create index if not exists patches_user_id_idx on patches (user_id);
 
 -- Where you stayed for this specific stop — a small bounded list scoped to
 -- one patch, so a jsonb array is simpler here than a separate table:
--- [{ "name": "...", "url": "..." }].
+-- [{ "name": "...", "url": "...", "rating": 1-5|null, "notes": "..." }].
 alter table patches add column if not exists accommodations jsonb not null default '[]';
+
+-- Good restaurants for this stop — same jsonb-array pattern:
+-- [{ "name": "...", "url": "..." }]. Memorable dishes (which need a photo
+-- each) live in the separate patch_dishes table below instead.
+alter table patches add column if not exists restaurants jsonb not null default '[]';
 
 -- Per-stop rating/review/journal, independent of the trip-level versions below.
 alter table patches add column if not exists rating smallint check (rating between 1 and 5);
@@ -164,8 +169,45 @@ create policy "patch_photos_delete_own" on patch_photos
   for delete using (auth.uid() = user_id);
 
 -- ---------------------------------------------------------------------------
+-- patch_dishes
+-- Favorite dishes for a stop — each needs its own photo, so unlike
+-- restaurants/accommodations this is a real table, not a jsonb array.
+-- ---------------------------------------------------------------------------
+
+create table if not exists patch_dishes (
+  id uuid primary key default gen_random_uuid(),
+  patch_id uuid not null references patches(id) on delete cascade,
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+
+  name text not null,
+  storage_path text not null,
+
+  created_at timestamptz not null default now()
+);
+
+create index if not exists patch_dishes_patch_id_idx on patch_dishes (patch_id);
+
+alter table patch_dishes enable row level security;
+
+drop policy if exists "patch_dishes_select_own" on patch_dishes;
+create policy "patch_dishes_select_own" on patch_dishes
+  for select using (auth.uid() = user_id);
+
+drop policy if exists "patch_dishes_insert_own" on patch_dishes;
+create policy "patch_dishes_insert_own" on patch_dishes
+  for insert with check (auth.uid() = user_id);
+
+drop policy if exists "patch_dishes_update_own" on patch_dishes;
+create policy "patch_dishes_update_own" on patch_dishes
+  for update using (auth.uid() = user_id);
+
+drop policy if exists "patch_dishes_delete_own" on patch_dishes;
+create policy "patch_dishes_delete_own" on patch_dishes
+  for delete using (auth.uid() = user_id);
+
+-- ---------------------------------------------------------------------------
 -- Storage buckets
--- Both private; the app reads photos via signed URLs / the authenticated client.
+-- All private; the app reads photos via signed URLs / the authenticated client.
 -- ---------------------------------------------------------------------------
 
 insert into storage.buckets (id, name, public)
@@ -174,6 +216,10 @@ on conflict (id) do nothing;
 
 insert into storage.buckets (id, name, public)
 values ('patch-gallery', 'patch-gallery', false)
+on conflict (id) do nothing;
+
+insert into storage.buckets (id, name, public)
+values ('patch-dishes', 'patch-dishes', false)
 on conflict (id) do nothing;
 
 -- Objects must live under a "<user_id>/..." path so this policy can scope
@@ -232,5 +278,33 @@ drop policy if exists "patch_gallery_delete_own" on storage.objects;
 create policy "patch_gallery_delete_own" on storage.objects
   for delete using (
     bucket_id = 'patch-gallery'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+drop policy if exists "patch_dishes_photos_select_own" on storage.objects;
+create policy "patch_dishes_photos_select_own" on storage.objects
+  for select using (
+    bucket_id = 'patch-dishes'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+drop policy if exists "patch_dishes_photos_insert_own" on storage.objects;
+create policy "patch_dishes_photos_insert_own" on storage.objects
+  for insert with check (
+    bucket_id = 'patch-dishes'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+drop policy if exists "patch_dishes_photos_update_own" on storage.objects;
+create policy "patch_dishes_photos_update_own" on storage.objects
+  for update using (
+    bucket_id = 'patch-dishes'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+drop policy if exists "patch_dishes_photos_delete_own" on storage.objects;
+create policy "patch_dishes_photos_delete_own" on storage.objects
+  for delete using (
+    bucket_id = 'patch-dishes'
     and (storage.foldername(name))[1] = auth.uid()::text
   );
