@@ -52,6 +52,7 @@ export default function TripDetail() {
   const [itinerary, setItinerary] = useState('')
   const [highlights, setHighlights] = useState('')
   const [tripReview, setTripReview] = useState('')
+  const [price, setPrice] = useState('')
 
   if (isLoading) {
     return <PlaceholderPage icon={StampIcon} title="Loading…" description="Fetching this trip's details." />
@@ -67,6 +68,7 @@ export default function TripDetail() {
     setItinerary(trip!.itinerary ?? '')
     setHighlights(trip!.highlights ?? '')
     setTripReview(trip!.trip_review ?? '')
+    setPrice(trip!.price != null ? String(trip!.price) : '')
     setEditing(true)
   }
 
@@ -79,12 +81,14 @@ export default function TripDetail() {
         itinerary: itinerary.trim() || null,
         highlights: highlights.trim() || null,
         trip_review: tripReview.trim() || null,
+        price: price.trim() ? Number(price) : null,
       },
     })
     setEditing(false)
   }
 
-  const hasAnyDetails = trip.rating != null || trip.itinerary || trip.highlights || trip.trip_review
+  const hasAnyDetails =
+    trip.rating != null || trip.itinerary || trip.highlights || trip.trip_review || trip.price != null
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -124,6 +128,18 @@ export default function TripDetail() {
               Overall rating
               <StarRating value={rating} onChange={setRating} />
             </label>
+            <label className="flex flex-col gap-1 text-sm font-medium text-ink/80">
+              Price
+              <input
+                type="number"
+                min={0}
+                step="0.01"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                placeholder="e.g. 2000"
+                className="rounded-xl border border-ink/15 bg-white px-3 py-2 text-sm text-ink outline-none focus:border-teal focus:ring-2 focus:ring-teal/20"
+              />
+            </label>
             <EditField label="Itinerary" value={itinerary} onChange={setItinerary} />
             <EditField label="Highlights" value={highlights} onChange={setHighlights} />
             <EditField label="Trip review" value={tripReview} onChange={setTripReview} />
@@ -147,6 +163,14 @@ export default function TripDetail() {
           </div>
         ) : (
           <div className="flex flex-col gap-5">
+            {trip.price != null && (
+              <div>
+                <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-ink/40">Price</p>
+                <p className="text-sm text-ink/80">
+                  {trip.price.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                </p>
+              </div>
+            )}
             <TripTextSection label="Itinerary" value={trip.itinerary} />
             <TripTextSection label="Highlights" value={trip.highlights} />
             <TripTextSection label="Trip review" value={trip.trip_review} />

@@ -158,6 +158,10 @@ function formatDate(value: string | null) {
   return new Date(value).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
+function formatPrice(value: number) {
+  return value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+}
+
 function DateStamp({ label, value }: { label: string; value: string }) {
   return (
     <div className="-rotate-2 rounded-lg border-2 border-dashed border-terracotta/40 px-3 py-1.5 text-center">
@@ -263,6 +267,7 @@ export default function PatchDetail() {
         <div className="mb-5 flex flex-wrap gap-3">
           {tripRange && <DateStamp label="Trip" value={tripRange} />}
           {patch.purchased_date && <DateStamp label="Purchased" value={formatDate(patch.purchased_date)!} />}
+          {patch.price != null && <DateStamp label="Price" value={formatPrice(patch.price)} />}
         </div>
 
         {patch.holiday_types.length > 0 && (

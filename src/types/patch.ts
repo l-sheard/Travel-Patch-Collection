@@ -23,6 +23,7 @@ export type Trip = {
   highlights: string | null
   trip_review: string | null
   rating: number | null
+  price: number | null
   created_at: string
 }
 
@@ -47,6 +48,7 @@ export type Patch = {
   itinerary: string | null
   highlights: string | null
   holiday_types: string[]
+  price: number | null
   created_at: string
   updated_at: string
 }
@@ -93,8 +95,9 @@ export type NewPatchInput = Pick<
   | 'itinerary'
   | 'highlights'
   | 'holiday_types'
+  | 'price'
 > & { geocode_raw?: unknown }
 
-export type NewTripInput = Pick<Trip, 'name' | 'itinerary' | 'highlights' | 'trip_review' | 'rating'>
+export type NewTripInput = Pick<Trip, 'name' | 'itinerary' | 'highlights' | 'trip_review' | 'rating' | 'price'>
 
 export type PatchWithPhotos = Patch & { patch_photos: PatchPhoto[] }

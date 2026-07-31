@@ -47,6 +47,10 @@ alter table patches add column if not exists review text;
 alter table patches add column if not exists itinerary text;
 alter table patches add column if not exists highlights text;
 
+-- Cost of this specific stop. No currency column — displayed as a plain
+-- number since the app doesn't ask which currency the user tracks in.
+alter table patches add column if not exists price numeric(10, 2);
+
 -- Free-form tags from a fixed vocabulary (see src/lib/holidayTypes.ts) —
 -- text[] rather than an enum so the app-side list can grow without a migration.
 alter table patches add column if not exists holiday_types text[] not null default '{}';
@@ -103,6 +107,7 @@ alter table trips add column if not exists itinerary text;
 alter table trips add column if not exists highlights text;
 alter table trips add column if not exists trip_review text;
 alter table trips add column if not exists rating smallint check (rating between 1 and 5);
+alter table trips add column if not exists price numeric(10, 2);
 
 alter table trips enable row level security;
 

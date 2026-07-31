@@ -54,6 +54,7 @@ export default function PatchForm({
   const [itinerary, setItinerary] = useState(initialValues?.itinerary ?? '')
   const [highlights, setHighlights] = useState(initialValues?.highlights ?? '')
   const [holidayTypes, setHolidayTypes] = useState<string[]>(initialValues?.holiday_types ?? [])
+  const [price, setPrice] = useState<string>(initialValues?.price != null ? String(initialValues.price) : '')
   const [tripName, setTripName] = useState(initialTripName ?? '')
   const [patchPhotoFiles, setPatchPhotoFiles] = useState<File[]>([])
   const [tripPhotos, setTripPhotos] = useState<File[]>([])
@@ -114,6 +115,7 @@ export default function PatchForm({
           itinerary: itinerary?.trim() || null,
           highlights: highlights?.trim() || null,
           holiday_types: holidayTypes,
+          price: price.trim() ? Number(price) : null,
         },
         patchPhotoFiles[0] ?? null,
         tripPhotos,
@@ -167,6 +169,18 @@ export default function PatchForm({
           type="date"
           value={purchasedDate ?? ''}
           onChange={(e) => setPurchasedDate(e.target.value)}
+          className={inputClass}
+        />
+      </Field>
+
+      <Field label="Price (optional)">
+        <input
+          type="number"
+          min={0}
+          step="0.01"
+          value={price}
+          onChange={(e) => setPrice(e.target.value)}
+          placeholder="e.g. 450"
           className={inputClass}
         />
       </Field>
