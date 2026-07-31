@@ -42,6 +42,28 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico}'],
+        runtimeCaching: [
+          {
+            // onnxruntime-web's WASM engine (bundled locally, fetched on first background-removal run)
+            urlPattern: ({ url }) => /\.(wasm|mjs)$/.test(url.pathname),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'ml-runtime-assets',
+              expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            // @imgly/background-removal's segmentation model weights (fetched from IMG.LY's free CDN)
+            urlPattern: /^https:\/\/staticimgly\.com\//,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'imgly-model-assets',
+              expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+        ],
       },
     }),
   ],

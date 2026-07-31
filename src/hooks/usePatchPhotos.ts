@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabaseClient'
 import type { PatchPhoto } from '../types/patch'
 import { useAuth } from '../context/AuthProvider'
+import { processGalleryImage } from '../lib/galleryProcessing'
 
 export function usePatchPhotos(patchId: string | undefined) {
   return useQuery({
@@ -61,9 +62,19 @@ export function useUploadPatchPhoto() {
       if (error) throw error
       return data as PatchPhoto
     },
-    onSuccess: (_data, variables) => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['patch-photos', variables.patchId] })
       queryClient.invalidateQueries({ queryKey: ['patches'] })
+
+      if (variables.isCover && user) {
+        processGalleryImage({
+          photoId: data.id,
+          patchId: variables.patchId,
+          userId: user.id,
+          originalFile: variables.file,
+          queryClient,
+        })
+      }
     },
   })
 }

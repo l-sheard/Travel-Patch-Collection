@@ -1,14 +1,39 @@
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { StampIcon } from '../components/layout/icons'
+import LoadingStamp from '../components/LoadingStamp'
 import PlaceholderPage from '../components/PlaceholderPage'
 import { useDeletePatch, usePatch } from '../hooks/usePatches'
 import { usePatchPhotos } from '../hooks/usePatchPhotos'
 import { usePhotoUrl } from '../hooks/usePhotoUrl'
+import type { PatchPhoto } from '../types/patch'
 
 function PhotoTile({ path }: { path: string }) {
   const { data: url } = usePhotoUrl('patch-originals', path)
   if (!url) return <div className="aspect-square animate-pulse rounded-xl bg-ink/5" />
   return <img src={url} alt="" className="aspect-square w-full rounded-xl object-cover" />
+}
+
+function CoverPhoto({ photo }: { photo: PatchPhoto }) {
+  const bucket = photo.storage_path_gallery ? 'patch-gallery' : 'patch-originals'
+  const path = photo.storage_path_gallery ?? photo.storage_path_original
+  const { data: url } = usePhotoUrl(bucket, path)
+  const isProcessing = photo.gallery_status === 'pending' || photo.gallery_status === 'processing'
+
+  return (
+    <div className="relative mb-5 flex aspect-square items-center justify-center overflow-hidden rounded-2xl bg-cream-dark/60 p-4">
+      {url ? (
+        <img src={url} alt="" className="h-full w-full object-contain drop-shadow" />
+      ) : (
+        <div className="h-full w-full animate-pulse rounded-xl bg-ink/5" />
+      )}
+      {isProcessing && (
+        <div className="absolute right-3 top-3 flex items-center gap-1.5 rounded-full bg-teal px-2.5 py-1 text-xs font-medium text-cream shadow-sm">
+          <LoadingStamp className="h-4 w-4" />
+          Removing background…
+        </div>
+      )}
+    </div>
+  )
 }
 
 function formatDate(value: string | null) {
@@ -76,13 +101,22 @@ export default function PatchDetail() {
           </div>
         </div>
 
-        {photos && photos.length > 0 && (
-          <div className="mb-5 grid grid-cols-3 gap-3 sm:grid-cols-4">
-            {photos.map((photo) => (
-              <PhotoTile key={photo.id} path={photo.storage_path_original} />
-            ))}
-          </div>
-        )}
+        {(() => {
+          const cover = photos?.find((p) => p.is_cover)
+          const otherPhotos = photos?.filter((p) => p.id !== cover?.id) ?? []
+          return (
+            <>
+              {cover && <CoverPhoto photo={cover} />}
+              {otherPhotos.length > 0 && (
+                <div className="mb-5 grid grid-cols-3 gap-3 sm:grid-cols-4">
+                  {otherPhotos.map((photo) => (
+                    <PhotoTile key={photo.id} path={photo.storage_path_original} />
+                  ))}
+                </div>
+              )}
+            </>
+          )
+        })()}
 
         <div className="mb-5 flex flex-wrap gap-3">
           {tripRange && <DateStamp label="Trip" value={tripRange} />}
