@@ -78,3 +78,24 @@ export function useUploadPatchPhoto() {
     },
   })
 }
+
+export function useDeletePatchPhoto() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (photo: PatchPhoto) => {
+      const removals = [supabase.storage.from('patch-originals').remove([photo.storage_path_original])]
+      if (photo.storage_path_gallery) {
+        removals.push(supabase.storage.from('patch-gallery').remove([photo.storage_path_gallery]))
+      }
+      // Best-effort: don't block the DB delete on storage cleanup issues.
+      await Promise.allSettled(removals)
+
+      const { error } = await supabase.from('patch_photos').delete().eq('id', photo.id)
+      if (error) throw error
+    },
+    onSuccess: (_data, photo) => {
+      queryClient.invalidateQueries({ queryKey: ['patch-photos', photo.patch_id] })
+      queryClient.invalidateQueries({ queryKey: ['patches'] })
+    },
+  })
+}

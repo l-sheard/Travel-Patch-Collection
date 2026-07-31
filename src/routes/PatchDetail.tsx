@@ -7,16 +7,44 @@ import PatchMap from '../components/LazyPatchMap'
 import PlaceholderPage from '../components/PlaceholderPage'
 import { useAuth } from '../context/AuthProvider'
 import { useDeletePatch, usePatch } from '../hooks/usePatches'
-import { usePatchPhotos } from '../hooks/usePatchPhotos'
+import { useDeletePatchPhoto, usePatchPhotos } from '../hooks/usePatchPhotos'
 import { usePhotoUrl } from '../hooks/usePhotoUrl'
 import { useTrip, useTripSiblingPatches } from '../hooks/useTrips'
 import { reprocessGalleryImage } from '../lib/galleryProcessing'
 import type { PatchPhoto } from '../types/patch'
 
-function PhotoTile({ path }: { path: string }) {
-  const { data: url } = usePhotoUrl('patch-originals', path)
-  if (!url) return <div className="aspect-square animate-pulse rounded-xl bg-ink/5" />
-  return <img src={url} alt="" className="aspect-square w-full rounded-xl object-cover" />
+function DeletePhotoButton({ photo, className }: { photo: PatchPhoto; className?: string }) {
+  const deletePhoto = useDeletePatchPhoto()
+
+  function handleClick() {
+    if (!confirm(photo.is_cover ? 'Remove this patch photo? It also stops being used for the gallery and scan matching.' : 'Remove this photo?')) return
+    deletePhoto.mutate(photo)
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleClick}
+      aria-label="Remove photo"
+      className={`flex h-6 w-6 items-center justify-center rounded-full bg-ink/60 text-sm text-cream hover:bg-terracotta-dark ${className ?? ''}`}
+    >
+      ×
+    </button>
+  )
+}
+
+function PhotoTile({ photo }: { photo: PatchPhoto }) {
+  const { data: url } = usePhotoUrl('patch-originals', photo.storage_path_original)
+  return (
+    <div className="relative aspect-square">
+      {url ? (
+        <img src={url} alt="" className="h-full w-full rounded-xl object-cover" />
+      ) : (
+        <div className="h-full w-full animate-pulse rounded-xl bg-ink/5" />
+      )}
+      <DeletePhotoButton photo={photo} className="absolute right-1.5 top-1.5" />
+    </div>
+  )
 }
 
 function CoverPhoto({ photo, patchId }: { photo: PatchPhoto; patchId: string }) {
@@ -45,6 +73,7 @@ function CoverPhoto({ photo, patchId }: { photo: PatchPhoto; patchId: string }) 
       ) : (
         <div className="h-full w-full animate-pulse rounded-xl bg-ink/5" />
       )}
+      <DeletePhotoButton photo={photo} className="absolute left-3 top-3" />
       {isProcessing && (
         <div className="absolute right-3 top-3 flex items-center gap-1.5 rounded-full bg-teal px-2.5 py-1 text-xs font-medium text-cream shadow-sm">
           <LoadingStamp className="h-4 w-4" />
@@ -155,7 +184,7 @@ export default function PatchDetail() {
               {otherPhotos.length > 0 && (
                 <div className="mb-5 grid grid-cols-3 gap-3 sm:grid-cols-4">
                   {otherPhotos.map((photo) => (
-                    <PhotoTile key={photo.id} path={photo.storage_path_original} />
+                    <PhotoTile key={photo.id} photo={photo} />
                   ))}
                 </div>
               )}
