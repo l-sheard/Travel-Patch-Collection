@@ -44,3 +44,5 @@ export type NewPatchInput = Pick<
   | 'companions'
   | 'description'
 > & { geocode_raw?: unknown }
+
+export type PatchWithPhotos = Patch & { patch_photos: PatchPhoto[] }
