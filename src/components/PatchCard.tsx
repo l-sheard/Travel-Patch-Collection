@@ -19,7 +19,7 @@ export default function PatchCard({ patch }: Props) {
       to={`/patches/${patch.id}`}
       className="group flex flex-col overflow-hidden rounded-2xl border border-ink/10 bg-white/70 shadow-sm transition-transform hover:-translate-y-0.5"
     >
-      <div className="relative flex aspect-square items-center justify-center bg-cream-dark/60 p-3">
+      <div className="relative flex aspect-square items-center justify-center bg-cream-dark/60 p-1">
         {cover && !url ? (
           <div className="h-full w-full animate-pulse rounded-xl bg-ink/5" />
         ) : url ? (

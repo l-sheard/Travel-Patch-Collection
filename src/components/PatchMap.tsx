@@ -35,7 +35,7 @@ function PatchPopupContent({ patch }: { patch: MappablePatch }) {
 
   return (
     <Link to={`/patches/${patch.id}`} className="block w-32">
-      <div className="mb-1.5 flex aspect-square items-center justify-center rounded-lg bg-cream-dark/60 p-1.5">
+      <div className="mb-1.5 flex aspect-square items-center justify-center rounded-lg bg-cream-dark/60 p-0.5">
         {url ? (
           <img src={url} alt="" className="h-full w-full object-contain" />
         ) : (
