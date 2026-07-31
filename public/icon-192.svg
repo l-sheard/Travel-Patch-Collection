@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="192" height="192">
+  <defs>
+    <style>
+      .bg { fill: #1F6F78; }
+      .ring { fill: none; stroke: #FBF6EC; stroke-width: 10; stroke-dasharray: 14 12; }
+      .pin { fill: #E4772E; }
+      .dot { fill: #FBF6EC; }
+    </style>
+  </defs>
+  <rect class="bg" x="0" y="0" width="512" height="512" rx="96"/>
+  <circle class="ring" cx="256" cy="256" r="196"/>
+  <path class="pin" d="M256 128c-53 0-96 43-96 96 0 72 96 176 96 176s96-104 96-176c0-53-43-96-96-96z"/>
+  <circle class="dot" cx="256" cy="224" r="34"/>
+</svg>
