@@ -6,6 +6,8 @@ export type Accommodation = {
   url: string | null
   rating: number | null
   notes: string | null
+  nights: number | null
+  people: number | null
 }
 
 export type Restaurant = {
@@ -68,7 +70,7 @@ export type PatchDish = {
   patch_id: string
   user_id: string
   name: string
-  storage_path: string
+  storage_path: string | null
   created_at: string
 }
 

@@ -23,16 +23,27 @@ export function useAddPatchDish() {
   const { user } = useAuth()
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({ patchId, name, file }: { patchId: string; name: string; file: File }) => {
+    mutationFn: async ({
+      patchId,
+      name,
+      file,
+    }: {
+      patchId: string
+      name: string
+      file: File | null
+    }) => {
       if (!user) throw new Error('Not signed in')
       const dishId = crypto.randomUUID()
-      const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
-      const path = `${user.id}/${patchId}/${dishId}.${ext}`
+      let path: string | null = null
 
-      const { error: uploadError } = await supabase.storage
-        .from('patch-dishes')
-        .upload(path, file, { contentType: file.type })
-      if (uploadError) throw uploadError
+      if (file) {
+        const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
+        path = `${user.id}/${patchId}/${dishId}.${ext}`
+        const { error: uploadError } = await supabase.storage
+          .from('patch-dishes')
+          .upload(path, file, { contentType: file.type })
+        if (uploadError) throw uploadError
+      }
 
       const { data, error } = await supabase
         .from('patch_dishes')
@@ -52,7 +63,9 @@ export function useDeletePatchDish() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (dish: PatchDish) => {
-      await supabase.storage.from('patch-dishes').remove([dish.storage_path])
+      if (dish.storage_path) {
+        await supabase.storage.from('patch-dishes').remove([dish.storage_path])
+      }
       const { error } = await supabase.from('patch_dishes').delete().eq('id', dish.id)
       if (error) throw error
     },

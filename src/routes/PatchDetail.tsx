@@ -115,6 +115,22 @@ function DishTile({ dish }: { dish: PatchDish }) {
     deleteDish.mutate(dish)
   }
 
+  if (!dish.storage_path) {
+    return (
+      <div className="flex items-center gap-1.5 rounded-full bg-mustard/20 py-1.5 pl-3 pr-1.5 text-xs font-medium text-ink/80">
+        {dish.name || 'Untitled dish'}
+        <button
+          type="button"
+          onClick={handleDelete}
+          aria-label="Remove dish"
+          className="flex h-4 w-4 items-center justify-center text-ink/40 hover:text-terracotta-dark"
+        >
+          ×
+        </button>
+      </div>
+    )
+  }
+
   return (
     <div className="flex w-24 flex-col gap-1">
       <div className="relative h-24 w-24 overflow-hidden rounded-xl border border-ink/10">
@@ -296,6 +312,16 @@ export default function PatchDetail() {
                     )}
                     {acc.rating != null && <StarRating value={acc.rating} readOnly size="text-sm" />}
                   </div>
+                  {(acc.nights != null || acc.people != null) && (
+                    <p className="mt-0.5 text-xs text-ink/50">
+                      {[
+                        acc.nights != null ? `${acc.nights} night${acc.nights === 1 ? '' : 's'}` : null,
+                        acc.people != null ? `${acc.people} ${acc.people === 1 ? 'person' : 'people'}` : null,
+                      ]
+                        .filter(Boolean)
+                        .join(' · ')}
+                    </p>
+                  )}
                   {acc.notes && <p className="mt-1 whitespace-pre-wrap text-xs text-ink/60">{acc.notes}</p>}
                 </div>
               ))}
@@ -325,7 +351,7 @@ export default function PatchDetail() {
         {dishes && dishes.length > 0 && (
           <div className="mb-5">
             <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-ink/40">Favorite dishes</p>
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap items-start gap-3">
               {dishes.map((dish) => (
                 <DishTile key={dish.id} dish={dish} />
               ))}

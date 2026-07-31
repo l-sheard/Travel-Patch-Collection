@@ -103,6 +103,8 @@ export default function PatchForm({
               url: a.url?.trim() || null,
               rating: a.rating,
               notes: a.notes?.trim() || null,
+              nights: a.nights,
+              people: a.people,
             })),
           restaurants: restaurants
             .filter((r) => r.name.trim())
@@ -116,7 +118,7 @@ export default function PatchForm({
         patchPhotoFiles[0] ?? null,
         tripPhotos,
         tripName.trim(),
-        dishes,
+        dishes.filter((d) => d.name.trim() || d.file),
       )
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong.')
@@ -206,7 +208,9 @@ export default function PatchForm({
       </Field>
 
       <Field label="Favorite dishes (optional)">
-        <p className="mb-1.5 -mt-0.5 text-xs font-normal text-ink/50">Add a photo and name for any memorable food.</p>
+        <p className="mb-1.5 -mt-0.5 text-xs font-normal text-ink/50">
+          Just a name is fine — a photo is optional.
+        </p>
         <DishesInput value={dishes} onChange={setDishes} />
       </Field>
 

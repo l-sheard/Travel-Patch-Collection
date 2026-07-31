@@ -19,7 +19,7 @@ export default function AccommodationsInput({ value, onChange }: Props) {
   }
 
   function add() {
-    onChange([...value, { name: '', url: null, rating: null, notes: null }])
+    onChange([...value, { name: '', url: null, rating: null, notes: null, nights: null, people: null }])
   }
 
   return (
@@ -42,6 +42,24 @@ export default function AccommodationsInput({ value, onChange }: Props) {
                 placeholder="Link (optional)"
                 className={inputClass}
               />
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  min={0}
+                  value={acc.nights ?? ''}
+                  onChange={(e) => updateAt(i, { nights: e.target.value ? Number(e.target.value) : null })}
+                  placeholder="Nights"
+                  className={inputClass}
+                />
+                <input
+                  type="number"
+                  min={0}
+                  value={acc.people ?? ''}
+                  onChange={(e) => updateAt(i, { people: e.target.value ? Number(e.target.value) : null })}
+                  placeholder="People"
+                  className={inputClass}
+                />
+              </div>
             </div>
             <button
               type="button"

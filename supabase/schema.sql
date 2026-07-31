@@ -33,7 +33,7 @@ create index if not exists patches_user_id_idx on patches (user_id);
 
 -- Where you stayed for this specific stop — a small bounded list scoped to
 -- one patch, so a jsonb array is simpler here than a separate table:
--- [{ "name": "...", "url": "...", "rating": 1-5|null, "notes": "..." }].
+-- [{ "name", "url", "rating": 1-5|null, "notes", "nights": number|null, "people": number|null }].
 alter table patches add column if not exists accommodations jsonb not null default '[]';
 
 -- Good restaurants for this stop — same jsonb-array pattern:
@@ -170,8 +170,9 @@ create policy "patch_photos_delete_own" on patch_photos
 
 -- ---------------------------------------------------------------------------
 -- patch_dishes
--- Favorite dishes for a stop — each needs its own photo, so unlike
--- restaurants/accommodations this is a real table, not a jsonb array.
+-- Favorite dishes for a stop — optionally has its own photo (a text-only
+-- dish entry is fine), so unlike restaurants/accommodations this is a real
+-- table, not a jsonb array.
 -- ---------------------------------------------------------------------------
 
 create table if not exists patch_dishes (
@@ -180,10 +181,13 @@ create table if not exists patch_dishes (
   user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
 
   name text not null,
-  storage_path text not null,
+  storage_path text,
 
   created_at timestamptz not null default now()
 );
+
+-- No-op if already nullable — safe to re-run.
+alter table patch_dishes alter column storage_path drop not null;
 
 create index if not exists patch_dishes_patch_id_idx on patch_dishes (patch_id);
 
