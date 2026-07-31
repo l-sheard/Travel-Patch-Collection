@@ -1,6 +1,10 @@
 import { removeBackground } from '@imgly/background-removal'
 
-const ALPHA_THRESHOLD = 10
+// High threshold: matting models leave a soft, semi-transparent feather at
+// edges (and sometimes a faint shadow) — counting those as "content" for the
+// crop makes the box much bigger than the visually solid subject. Only count
+// strongly-opaque pixels.
+const ALPHA_THRESHOLD = 200
 const CROP_PADDING = 12
 
 export async function removePatchBackground(image: File | Blob): Promise<Blob> {
