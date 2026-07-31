@@ -36,6 +36,12 @@ create index if not exists patches_user_id_idx on patches (user_id);
 -- [{ "name": "...", "url": "..." }].
 alter table patches add column if not exists accommodations jsonb not null default '[]';
 
+-- Per-stop rating/review/journal, independent of the trip-level versions below.
+alter table patches add column if not exists rating smallint check (rating between 1 and 5);
+alter table patches add column if not exists review text;
+alter table patches add column if not exists itinerary text;
+alter table patches add column if not exists highlights text;
+
 create or replace function set_updated_at()
 returns trigger
 language plpgsql
@@ -87,6 +93,7 @@ create index if not exists trips_user_id_idx on trips (user_id);
 alter table trips add column if not exists itinerary text;
 alter table trips add column if not exists highlights text;
 alter table trips add column if not exists trip_review text;
+alter table trips add column if not exists rating smallint check (rating between 1 and 5);
 
 alter table trips enable row level security;
 

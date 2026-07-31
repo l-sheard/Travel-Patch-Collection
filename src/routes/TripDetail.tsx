@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom'
 import { StampIcon } from '../components/layout/icons'
 import PatchCard from '../components/PatchCard'
 import PlaceholderPage from '../components/PlaceholderPage'
+import StarRating from '../components/StarRating'
 import { useTrip, useTripSiblingPatches, useUpdateTrip } from '../hooks/useTrips'
 
 function TripTextSection({ label, value }: { label: string; value: string | null }) {
@@ -47,6 +48,7 @@ export default function TripDetail() {
 
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState('')
+  const [rating, setRating] = useState<number | null>(null)
   const [itinerary, setItinerary] = useState('')
   const [highlights, setHighlights] = useState('')
   const [tripReview, setTripReview] = useState('')
@@ -61,6 +63,7 @@ export default function TripDetail() {
 
   function startEditing() {
     setName(trip!.name)
+    setRating(trip!.rating)
     setItinerary(trip!.itinerary ?? '')
     setHighlights(trip!.highlights ?? '')
     setTripReview(trip!.trip_review ?? '')
@@ -72,6 +75,7 @@ export default function TripDetail() {
       id: trip!.id,
       input: {
         name: name.trim() || trip!.name,
+        rating,
         itinerary: itinerary.trim() || null,
         highlights: highlights.trim() || null,
         trip_review: tripReview.trim() || null,
@@ -80,7 +84,7 @@ export default function TripDetail() {
     setEditing(false)
   }
 
-  const hasAnyDetails = trip.itinerary || trip.highlights || trip.trip_review
+  const hasAnyDetails = trip.rating != null || trip.itinerary || trip.highlights || trip.trip_review
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -94,7 +98,14 @@ export default function TripDetail() {
               className="w-full rounded-xl border border-ink/15 bg-white px-3 py-2 font-display text-xl font-semibold text-teal-dark outline-none focus:border-teal focus:ring-2 focus:ring-teal/20"
             />
           ) : (
-            <h1 className="font-display text-3xl font-semibold text-teal-dark">{trip.name}</h1>
+            <div>
+              <h1 className="font-display text-3xl font-semibold text-teal-dark">{trip.name}</h1>
+              {trip.rating != null && (
+                <div className="mt-1">
+                  <StarRating value={trip.rating} readOnly size="text-base" />
+                </div>
+              )}
+            </div>
           )}
           {!editing && (
             <button
@@ -109,6 +120,10 @@ export default function TripDetail() {
 
         {editing ? (
           <div className="flex flex-col gap-4">
+            <label className="flex flex-col gap-1 text-sm font-medium text-ink/80">
+              Overall rating
+              <StarRating value={rating} onChange={setRating} />
+            </label>
             <EditField label="Itinerary" value={itinerary} onChange={setItinerary} />
             <EditField label="Highlights" value={highlights} onChange={setHighlights} />
             <EditField label="Trip review" value={tripReview} onChange={setTripReview} />
@@ -136,7 +151,9 @@ export default function TripDetail() {
             <TripTextSection label="Highlights" value={trip.highlights} />
             <TripTextSection label="Trip review" value={trip.trip_review} />
             {!hasAnyDetails && (
-              <p className="text-sm text-ink/50">No itinerary, highlights, or review yet — click Edit to add some.</p>
+              <p className="text-sm text-ink/50">
+                No rating, itinerary, highlights, or review yet — click Edit to add some.
+              </p>
             )}
           </div>
         )}

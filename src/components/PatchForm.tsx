@@ -4,6 +4,7 @@ import CompanionsInput from './CompanionsInput'
 import AccommodationsInput from './AccommodationsInput'
 import LocationPicker from './LocationPicker'
 import CountryInput from './CountryInput'
+import StarRating from './StarRating'
 import { useTrips } from '../hooks/useTrips'
 import type { Accommodation, NewPatchInput } from '../types/patch'
 import type { GeocodeResult } from '../lib/geocode'
@@ -37,6 +38,10 @@ export default function PatchForm({
   const [companions, setCompanions] = useState<string[]>(initialValues?.companions ?? [])
   const [description, setDescription] = useState(initialValues?.description ?? '')
   const [accommodations, setAccommodations] = useState<Accommodation[]>(initialValues?.accommodations ?? [])
+  const [rating, setRating] = useState<number | null>(initialValues?.rating ?? null)
+  const [review, setReview] = useState(initialValues?.review ?? '')
+  const [itinerary, setItinerary] = useState(initialValues?.itinerary ?? '')
+  const [highlights, setHighlights] = useState(initialValues?.highlights ?? '')
   const [tripName, setTripName] = useState(initialTripName ?? '')
   const [patchPhotoFiles, setPatchPhotoFiles] = useState<File[]>([])
   const [tripPhotos, setTripPhotos] = useState<File[]>([])
@@ -82,6 +87,10 @@ export default function PatchForm({
           accommodations: accommodations
             .filter((a) => a.name.trim())
             .map((a) => ({ name: a.name.trim(), url: a.url?.trim() || null })),
+          rating,
+          review: review?.trim() || null,
+          itinerary: itinerary?.trim() || null,
+          highlights: highlights?.trim() || null,
         },
         patchPhotoFiles[0] ?? null,
         tripPhotos,
@@ -164,6 +173,40 @@ export default function PatchForm({
 
       <Field label="Where we stayed (optional)">
         <AccommodationsInput value={accommodations} onChange={setAccommodations} />
+      </Field>
+
+      <Field label="Your rating">
+        <StarRating value={rating} onChange={setRating} />
+      </Field>
+
+      <Field label="Review">
+        <textarea
+          value={review ?? ''}
+          onChange={(e) => setReview(e.target.value)}
+          rows={3}
+          placeholder="What did you think of this place?"
+          className={inputClass}
+        />
+      </Field>
+
+      <Field label="Itinerary">
+        <textarea
+          value={itinerary ?? ''}
+          onChange={(e) => setItinerary(e.target.value)}
+          rows={3}
+          placeholder="What you did here..."
+          className={inputClass}
+        />
+      </Field>
+
+      <Field label="Highlights">
+        <textarea
+          value={highlights ?? ''}
+          onChange={(e) => setHighlights(e.target.value)}
+          rows={3}
+          placeholder="Favorite moments from this stop..."
+          className={inputClass}
+        />
       </Field>
 
       <Field label="Notes">

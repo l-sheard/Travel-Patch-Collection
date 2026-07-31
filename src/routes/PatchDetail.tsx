@@ -10,7 +10,20 @@ import { useDeletePatchPhoto, usePatchPhotos } from '../hooks/usePatchPhotos'
 import { usePhotoUrl } from '../hooks/usePhotoUrl'
 import { useTrip } from '../hooks/useTrips'
 import { reprocessGalleryImage } from '../lib/galleryProcessing'
+import StarRating from '../components/StarRating'
 import type { PatchPhoto } from '../types/patch'
+
+function TextSection({ label, value }: { label: string; value: string | null }) {
+  if (!value) return null
+  return (
+    <div className="mb-5">
+      <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-ink/40">{label}</p>
+      <p className="whitespace-pre-wrap rounded-xl border border-dashed border-ink/15 p-3 text-sm text-ink/80">
+        {value}
+      </p>
+    </div>
+  )
+}
 
 function DeletePhotoButton({ photo, className }: { photo: PatchPhoto; className?: string }) {
   const deletePhoto = useDeletePatchPhoto()
@@ -150,6 +163,11 @@ export default function PatchDetail() {
           <div>
             <h1 className="font-display text-3xl font-semibold text-teal-dark">{patch.location_name}</h1>
             {patch.country && <p className="text-sm text-ink/50">{patch.country}</p>}
+            {patch.rating != null && (
+              <div className="mt-1">
+                <StarRating value={patch.rating} readOnly size="text-base" />
+              </div>
+            )}
             {trip && (
               <Link
                 to={`/trips/${trip.id}`}
@@ -235,14 +253,10 @@ export default function PatchDetail() {
           </div>
         )}
 
-        {patch.description && (
-          <div className="mb-5">
-            <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-ink/40">Notes</p>
-            <p className="whitespace-pre-wrap rounded-xl border border-dashed border-ink/15 p-3 text-sm text-ink/80">
-              {patch.description}
-            </p>
-          </div>
-        )}
+        <TextSection label="Review" value={patch.review} />
+        <TextSection label="Itinerary" value={patch.itinerary} />
+        <TextSection label="Highlights" value={patch.highlights} />
+        <TextSection label="Notes" value={patch.description} />
 
         {patch.lat != null && patch.lng != null && (
           <div>
