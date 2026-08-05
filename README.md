@@ -1,6 +1,6 @@
 # Travel Patches
 
-**[travelpatchcollection.netlify.app →](https://travelpatchcollection.netlify.app/)**
+**[mytravelpatches.com →](https://mytravelpatches.com/)**
 
 An installable web app for cataloguing a physical travel patch collection.
 Scan a patch with your phone's camera and it's matched against ones already
