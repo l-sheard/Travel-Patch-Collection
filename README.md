@@ -41,16 +41,14 @@ Query
 Supabase — Postgres (with row-level security on every table), Auth, and
 Storage (private buckets, size/type-limited uploads)
 
-**On-device machine learning / image processing** *(all client-side, zero
-paid API keys anywhere in the stack)*
+**On-device machine learning / image processing**
 - `@tensorflow-models/mobilenet` — scan-match embeddings
 - `@imgly/background-removal` — gallery "sticker" processing
 - Leaflet + OpenStreetMap/Nominatim — mapping and geocoding
 
 **Auth & security**
-Supabase Auth (email/password, password reset) · optional Cloudflare
-Turnstile CAPTCHA on auth forms · optional Sentry error monitoring
-(dynamically imported, zero bundle cost when unconfigured)
+Supabase Auth (email/password, password reset) · Cloudflare Turnstile
+CAPTCHA on auth forms · Sentry error monitoring
 
 **Testing & CI**
 Vitest + Testing Library · GitHub Actions (lint, test, build on every
