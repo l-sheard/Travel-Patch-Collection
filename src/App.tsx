@@ -10,6 +10,7 @@ import Gallery from './routes/Gallery'
 import MapView from './routes/MapView'
 import Settings from './routes/Settings'
 import SignIn from './routes/SignIn'
+import ResetPassword from './routes/ResetPassword'
 import PlaceholderPage from './components/PlaceholderPage'
 import { StampIcon } from './components/layout/icons'
 import { useAuth } from './context/AuthProvider'
@@ -33,9 +34,10 @@ function LoadingScreen() {
 }
 
 function App() {
-  const { session, loading } = useAuth()
+  const { session, loading, isPasswordRecovery } = useAuth()
 
   if (loading) return <LoadingScreen />
+  if (isPasswordRecovery) return <ResetPassword />
   if (!session) return <SignIn />
 
   return (

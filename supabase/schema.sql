@@ -231,6 +231,14 @@ insert into storage.buckets (id, name, public)
 values ('patch-dishes', 'patch-dishes', false)
 on conflict (id) do nothing;
 
+-- Cap upload size/type per bucket (defense in depth alongside the client-side
+-- check in src/lib/fileValidation.ts) so a public signup can't fill storage
+-- quota with oversized or non-image files.
+update storage.buckets
+set file_size_limit = 15728640, -- 15MB, keep in sync with MAX_IMAGE_BYTES
+    allowed_mime_types = array['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif']
+where id in ('patch-originals', 'patch-gallery', 'patch-dishes');
+
 -- Objects must live under a "<user_id>/..." path so this policy can scope
 -- access to their owner (see src/lib/storagePaths.ts for the upload path shape).
 

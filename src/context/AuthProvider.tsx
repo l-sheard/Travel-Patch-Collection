@@ -6,8 +6,16 @@ type AuthContextValue = {
   session: Session | null
   user: User | null
   loading: boolean
-  signInWithPassword: (email: string, password: string) => Promise<{ error: string | null }>
-  signUpWithPassword: (email: string, password: string) => Promise<{ error: string | null; needsEmailConfirmation: boolean }>
+  isPasswordRecovery: boolean
+  signInWithPassword: (email: string, password: string, captchaToken?: string) => Promise<{ error: string | null }>
+  signUpWithPassword: (
+    email: string,
+    password: string,
+    captchaToken?: string,
+  ) => Promise<{ error: string | null; needsEmailConfirmation: boolean }>
+  sendPasswordReset: (email: string, captchaToken?: string) => Promise<{ error: string | null }>
+  updatePassword: (newPassword: string) => Promise<{ error: string | null }>
+  cancelPasswordRecovery: () => void
   signOut: () => Promise<void>
 }
 
@@ -16,6 +24,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -23,8 +32,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false)
     })
 
-    const { data: subscription } = supabase.auth.onAuthStateChange((_event, newSession) => {
+    const { data: subscription } = supabase.auth.onAuthStateChange((event, newSession) => {
       setSession(newSession)
+      if (event === 'PASSWORD_RECOVERY') setIsPasswordRecovery(true)
     })
 
     return () => subscription.subscription.unsubscribe()
@@ -34,16 +44,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     session,
     user: session?.user ?? null,
     loading,
-    async signInWithPassword(email, password) {
-      const { error } = await supabase.auth.signInWithPassword({ email, password })
+    isPasswordRecovery,
+    async signInWithPassword(email, password, captchaToken) {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+        options: captchaToken ? { captchaToken } : undefined,
+      })
       return { error: error?.message ?? null }
     },
-    async signUpWithPassword(email, password) {
-      const { data, error } = await supabase.auth.signUp({ email, password })
+    async signUpWithPassword(email, password, captchaToken) {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: captchaToken ? { captchaToken } : undefined,
+      })
       return {
         error: error?.message ?? null,
         needsEmailConfirmation: !error && !data.session,
       }
+    },
+    async sendPasswordReset(email, captchaToken) {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin,
+        captchaToken,
+      })
+      return { error: error?.message ?? null }
+    },
+    async updatePassword(newPassword) {
+      const { error } = await supabase.auth.updateUser({ password: newPassword })
+      if (!error) setIsPasswordRecovery(false)
+      return { error: error?.message ?? null }
+    },
+    cancelPasswordRecovery() {
+      setIsPasswordRecovery(false)
+      void supabase.auth.signOut()
     },
     async signOut() {
       await supabase.auth.signOut()

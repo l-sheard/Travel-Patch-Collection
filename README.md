@@ -25,12 +25,27 @@ npm install
 npm run dev
 ```
 
-Requires a `.env` file (gitignored) once Supabase is wired up in Phase 2:
+Requires a `.env` file (gitignored) — copy `.env.example` to `.env` and fill
+in your Supabase project values:
 
 ```
 VITE_SUPABASE_URL=...
 VITE_SUPABASE_ANON_KEY=...
 ```
+
+`VITE_TURNSTILE_SITE_KEY` and `VITE_SENTRY_DSN` are optional (see below) —
+leave them blank locally.
+
+Other useful commands:
+
+```bash
+npm run lint    # oxlint
+npm run test    # vitest
+npm run build   # typecheck + production build
+```
+
+CI (`.github/workflows/ci.yml`) runs lint, test, and build on every push/PR
+to `main`.
 
 ## Deploying (Netlify)
 
@@ -53,3 +68,41 @@ SPA redirect rule client-side routing needs). To deploy:
 6. On your phone, open the deployed URL in the browser and use "Add to Home
    Screen" (Safari: Share → Add to Home Screen; Chrome/Android: menu →
    Install app) to get the installed-PWA experience with camera access.
+
+## Going live for real signups
+
+The app is safe for strangers to sign up for out of the box (Postgres RLS
+scopes every table and storage bucket to `auth.uid()`, and the anon key is
+meant to be public). A few things only exist as dashboard/account
+configuration, not code, so do these once before sharing the link widely:
+
+1. **Custom SMTP for auth emails.** Supabase's built-in mailer is rate-limited
+   (a few emails/hour) and lands in spam — fine for development, not for a
+   real signup flow. In **Supabase → Authentication → Emails → SMTP Settings**,
+   plug in a free-tier provider (e.g. [Resend](https://resend.com) or
+   [Postmark](https://postmarkapp.com)). Without this, confirmation and
+   password-reset emails to real users may never arrive.
+2. **Site URL / Redirect URLs.** In **Supabase → Authentication → URL
+   Configuration**, set Site URL to your deployed URL (e.g. your Netlify
+   domain) and add it to Redirect URLs — required for the password-reset
+   link to land back on your app instead of `localhost`.
+3. **CAPTCHA on auth forms.** Create a free
+   [Cloudflare Turnstile](https://dash.cloudflare.com/?to=/:account/turnstile)
+   widget (widget mode: "Managed"), then:
+   - set `VITE_TURNSTILE_SITE_KEY` (Netlify env var + local `.env`) to the
+     site key — the app will automatically show the widget on sign-in,
+     sign-up, and password reset once it's set;
+   - in **Supabase → Authentication → Attack Protection**, enable CAPTCHA
+     protection and paste in the Turnstile *secret* key.
+   Without this, public signup is open to bot abuse.
+4. **Re-run `supabase/schema.sql`** if you set this project up before file
+   size limits were added — it now caps uploads at 15MB/image per bucket
+   (idempotent, safe to re-run).
+5. **Error monitoring (optional).** Create a free
+   [Sentry](https://sentry.io) project, set `VITE_SENTRY_DSN` (Netlify env
+   var), and uncaught errors from real visitors get reported instead of
+   silently failing.
+
+## License
+
+MIT — see [LICENSE](LICENSE).

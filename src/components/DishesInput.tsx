@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { PlusIcon } from './layout/icons'
+import { validateImageFile } from '../lib/fileValidation'
 
 export type PendingDish = { name: string; file: File | null }
 
@@ -31,52 +32,65 @@ function DishRow({
   onRemove: () => void
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
+  const [error, setError] = useState<string | null>(null)
 
   function handleFileSelect(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     e.target.value = ''
-    if (file) onUpdate({ file })
+    if (!file) return
+
+    const invalid = validateImageFile(file)
+    if (invalid) {
+      setError(invalid)
+      return
+    }
+    setError(null)
+    onUpdate({ file })
   }
 
   return (
-    <div className="flex items-center gap-2 rounded-xl border border-ink/10 bg-white/60 p-2">
-      <button
-        type="button"
-        onClick={() => inputRef.current?.click()}
-        className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg border-2 border-dashed border-teal/30 text-teal hover:bg-teal/5"
-        aria-label={dish.file ? 'Change photo' : 'Add photo (optional)'}
-      >
-        {dish.file ? <DishThumb file={dish.file} /> : <PlusIcon className="h-4 w-4" />}
-      </button>
-
-      <input
-        type="text"
-        value={dish.name}
-        onChange={(e) => onUpdate({ name: e.target.value })}
-        placeholder="Dish name"
-        className="flex-1 rounded-lg border border-ink/15 bg-white px-2.5 py-1.5 text-sm text-ink outline-none focus:border-teal focus:ring-2 focus:ring-teal/20"
-      />
-
-      {dish.file && (
+    <div className="flex flex-col gap-1">
+      <div className="flex items-center gap-2 rounded-xl border border-ink/10 bg-white/60 p-2">
         <button
           type="button"
-          onClick={() => onUpdate({ file: null })}
-          className="shrink-0 text-xs text-ink/40 hover:text-terracotta-dark"
+          onClick={() => inputRef.current?.click()}
+          className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg border-2 border-dashed border-teal/30 text-teal hover:bg-teal/5"
+          aria-label={dish.file ? 'Change photo' : 'Add photo (optional)'}
         >
-          Remove photo
+          {dish.file ? <DishThumb file={dish.file} /> : <PlusIcon className="h-4 w-4" />}
         </button>
-      )}
 
-      <button
-        type="button"
-        onClick={onRemove}
-        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-ink/40 hover:text-terracotta-dark"
-        aria-label="Remove dish"
-      >
-        ×
-      </button>
+        <input
+          type="text"
+          value={dish.name}
+          onChange={(e) => onUpdate({ name: e.target.value })}
+          placeholder="Dish name"
+          className="flex-1 rounded-lg border border-ink/15 bg-white px-2.5 py-1.5 text-sm text-ink outline-none focus:border-teal focus:ring-2 focus:ring-teal/20"
+        />
 
-      <input ref={inputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileSelect} />
+        {dish.file && (
+          <button
+            type="button"
+            onClick={() => onUpdate({ file: null })}
+            className="shrink-0 text-xs text-ink/40 hover:text-terracotta-dark"
+          >
+            Remove photo
+          </button>
+        )}
+
+        <button
+          type="button"
+          onClick={onRemove}
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-ink/40 hover:text-terracotta-dark"
+          aria-label="Remove dish"
+        >
+          ×
+        </button>
+
+        <input ref={inputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileSelect} />
+      </div>
+
+      {error && <p className="text-xs text-terracotta-dark">{error}</p>}
     </div>
   )
 }

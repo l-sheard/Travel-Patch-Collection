@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { PlusIcon } from './layout/icons'
+import { validateImageFile } from '../lib/fileValidation'
 
 type Props = {
   files: File[]
@@ -23,14 +24,23 @@ function PhotoThumb({ file }: { file: File }) {
 
 export default function PhotoCapture({ files, onChange, max, addLabel = 'Add photo' }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
+  const [error, setError] = useState<string | null>(null)
   const atLimit = max !== undefined && files.length >= max
 
   function handleSelect(e: ChangeEvent<HTMLInputElement>) {
     const selected = Array.from(e.target.files ?? [])
+    e.target.value = ''
     if (!selected.length) return
+
+    const invalid = selected.map(validateImageFile).find(Boolean)
+    if (invalid) {
+      setError(invalid)
+      return
+    }
+    setError(null)
+
     const combined = max !== undefined ? [...files, ...selected].slice(0, max) : [...files, ...selected]
     onChange(combined)
-    e.target.value = ''
   }
 
   function removeAt(index: number) {
@@ -38,41 +48,45 @@ export default function PhotoCapture({ files, onChange, max, addLabel = 'Add pho
   }
 
   return (
-    <div className="flex flex-wrap gap-3">
-      {files.map((file, i) => (
-        <div key={i} className="relative h-24 w-24 overflow-hidden rounded-xl border border-ink/10">
-          <PhotoThumb file={file} />
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap gap-3">
+        {files.map((file, i) => (
+          <div key={i} className="relative h-24 w-24 overflow-hidden rounded-xl border border-ink/10">
+            <PhotoThumb file={file} />
+            <button
+              type="button"
+              onClick={() => removeAt(i)}
+              className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-ink/60 text-xs text-cream"
+              aria-label="Remove photo"
+            >
+              ×
+            </button>
+          </div>
+        ))}
+
+        {!atLimit && (
           <button
             type="button"
-            onClick={() => removeAt(i)}
-            className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-ink/60 text-xs text-cream"
-            aria-label="Remove photo"
+            onClick={() => inputRef.current?.click()}
+            className="flex h-24 w-24 flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-teal/30 text-teal hover:bg-teal/5"
           >
-            ×
+            <PlusIcon className="h-5 w-5" />
+            <span className="text-[11px] font-medium">{addLabel}</span>
           </button>
-        </div>
-      ))}
+        )}
 
-      {!atLimit && (
-        <button
-          type="button"
-          onClick={() => inputRef.current?.click()}
-          className="flex h-24 w-24 flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-teal/30 text-teal hover:bg-teal/5"
-        >
-          <PlusIcon className="h-5 w-5" />
-          <span className="text-[11px] font-medium">{addLabel}</span>
-        </button>
-      )}
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          multiple={max !== 1}
+          onChange={handleSelect}
+          className="hidden"
+        />
+      </div>
 
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        multiple={max !== 1}
-        onChange={handleSelect}
-        className="hidden"
-      />
+      {error && <p className="text-xs text-terracotta-dark">{error}</p>}
     </div>
   )
 }
