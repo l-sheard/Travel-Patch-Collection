@@ -4,15 +4,15 @@
 
 An installable web app for cataloguing a physical travel patch collection.
 Scan a patch with your phone's camera and it's matched against ones already
-logged using an on-device computer vision model — no server round-trip, no
-paid API. Add a new one with its trip dates, location, companions, and
-photos, and it's automatically plotted on a world map and turned into a
-background-removed "sticker" for the gallery view.
+logged using an on-device computer vision model. Add a new one with its trip
+dates, location, companions, and photos, and it's automatically plotted on a
+world map and turned into a background-removed "sticker" for the gallery
+view.
 
-Built as a real, working app rather than a demo: full auth with password
-reset and CAPTCHA-protected signup, Postgres row-level security scoping
-every user to their own data, upload validation, and CI running lint/test/
-build on every push. Anyone can create an account and use it.
+Full auth with password reset and CAPTCHA-protected signup, Postgres
+row-level security scoping every user to their own data, upload validation,
+and CI running lint/test/build on every push. Anyone can create an account
+and use it.
 
 ## Features
 
