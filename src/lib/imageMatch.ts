@@ -15,6 +15,15 @@ function loadModel() {
   return modelPromise
 }
 
+/** Kicks off the (memoized) model download/compile early — e.g. as soon as
+ * the scan page mounts — so it's likely already warm by the time a photo's
+ * actually picked, instead of only starting once analysis is requested. */
+export function preloadImageMatchModel() {
+  void loadModel().catch(() => {
+    // Swallow — analyzePatchPhoto will retry and surface any real failure there.
+  })
+}
+
 async function loadImageElement(file: File | Blob): Promise<HTMLImageElement> {
   const url = URL.createObjectURL(file)
   try {

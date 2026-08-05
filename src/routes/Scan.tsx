@@ -1,11 +1,17 @@
-import { useState, type ChangeEvent } from 'react'
+import { useEffect, useState, type ChangeEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ScanIcon } from '../components/layout/icons'
 import LoadingStamp from '../components/LoadingStamp'
 import PatchCard from '../components/PatchCard'
 import { usePatches } from '../hooks/usePatches'
 import { removePatchBackground } from '../lib/backgroundRemoval'
-import { analyzePatchPhoto, cosineSimilarity, hammingDistance, parseEmbedding } from '../lib/imageMatch'
+import {
+  analyzePatchPhoto,
+  cosineSimilarity,
+  hammingDistance,
+  parseEmbedding,
+  preloadImageMatchModel,
+} from '../lib/imageMatch'
 import type { PatchWithPhotos } from '../types/patch'
 
 const CONFIDENT_THRESHOLD = 0.85
@@ -23,6 +29,12 @@ export default function Scan() {
   const [preview, setPreview] = useState<string | null>(null)
   const analyzing = stage !== 'idle'
 
+  // Start warming the match model as soon as this page opens, so it's
+  // likely already loaded by the time the user's actually picked a photo.
+  useEffect(() => {
+    preloadImageMatchModel()
+  }, [])
+
   async function handleFile(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     e.target.value = ''
@@ -31,6 +43,7 @@ export default function Scan() {
     setError(null)
     setCandidates(null)
     setPreview(URL.createObjectURL(file))
+    preloadImageMatchModel()
 
     try {
       // Isolate the patch the same way stored reference photos are isolated
