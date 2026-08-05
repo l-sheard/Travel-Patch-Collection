@@ -1,107 +1,63 @@
 # Travel Patches
 
-A PWA for cataloguing a physical travel patch collection: scan a patch to
-match it against ones already logged, or add a new one with its trip dates,
-purchase date, location, travel companions, description, and photos. Patches
-plot on a world map by location, and the gallery view shows each one as a
-background-removed "sticker."
+**[travelpatchcollection.netlify.app →](https://travelpatchcollection.netlify.app/)**
 
-## Stack
+An installable web app for cataloguing a physical travel patch collection.
+Scan a patch with your phone's camera and it's matched against ones already
+logged using an on-device computer vision model — no server round-trip, no
+paid API. Add a new one with its trip dates, location, companions, and
+photos, and it's automatically plotted on a world map and turned into a
+background-removed "sticker" for the gallery view.
 
-- React + TypeScript + Vite, Tailwind CSS v4, React Router, TanStack Query
-- PWA via `vite-plugin-pwa` (installable, works on desktop + phone browsers)
-- Supabase (Postgres + Auth + Storage) for cloud-synced data
-- Client-side, on-device only: `@tensorflow-models/mobilenet` for scan-match
-  embeddings, `@imgly/background-removal` for gallery image processing,
-  Leaflet/OpenStreetMap + Nominatim for the map (no paid API keys anywhere)
+Built as a real, working app rather than a demo: full auth with password
+reset and CAPTCHA-protected signup, Postgres row-level security scoping
+every user to their own data, upload validation, and CI running lint/test/
+build on every push. Anyone can create an account and use it.
 
-See `.claude/plans/` (or ask Claude) for the full architecture plan and
-phased build order.
+## Features
 
-## Local development
+- **Scan-to-match** — point the camera at a patch and it's matched against
+  your existing collection via on-device MobileNet embeddings + perceptual
+  hashing, so duplicates get caught before you re-log the same patch.
+- **Rich per-patch logging** — location (geocoded and pinned on a map),
+  trip/purchase dates, travel companions, holiday type tags, star rating
+  and review, cost, accommodations (with ratings/notes/nights/people),
+  restaurants, and memorable dishes with their own photos.
+- **Trips** — group patches from the same trip together with a shared
+  itinerary, highlights, and review.
+- **Gallery** — every patch rendered as a background-removed sticker
+  (processed on-device), filterable and sortable.
+- **Map view** — the whole collection plotted geographically.
+- **Installable PWA** — add it to your home screen on iOS/Android for a
+  native-app-like experience with camera access, offline-cached assets.
 
-```bash
-npm install
-npm run dev
-```
+## Tech stack
 
-Requires a `.env` file (gitignored) — copy `.env.example` to `.env` and fill
-in your Supabase project values:
+**Frontend**
+React 19 + TypeScript + Vite · Tailwind CSS v4 · React Router · TanStack
+Query
 
-```
-VITE_SUPABASE_URL=...
-VITE_SUPABASE_ANON_KEY=...
-```
+**Backend**
+Supabase — Postgres (with row-level security on every table), Auth, and
+Storage (private buckets, size/type-limited uploads)
 
-`VITE_TURNSTILE_SITE_KEY` and `VITE_SENTRY_DSN` are optional (see below) —
-leave them blank locally.
+**On-device machine learning / image processing** *(all client-side, zero
+paid API keys anywhere in the stack)*
+- `@tensorflow-models/mobilenet` — scan-match embeddings
+- `@imgly/background-removal` — gallery "sticker" processing
+- Leaflet + OpenStreetMap/Nominatim — mapping and geocoding
 
-Other useful commands:
+**Auth & security**
+Supabase Auth (email/password, password reset) · optional Cloudflare
+Turnstile CAPTCHA on auth forms · optional Sentry error monitoring
+(dynamically imported, zero bundle cost when unconfigured)
 
-```bash
-npm run lint    # oxlint
-npm run test    # vitest
-npm run build   # typecheck + production build
-```
+**Testing & CI**
+Vitest + Testing Library · GitHub Actions (lint, test, build on every
+push/PR)
 
-CI (`.github/workflows/ci.yml`) runs lint, test, and build on every push/PR
-to `main`.
-
-## Deploying (Netlify)
-
-`netlify.toml` is already configured (build command, publish dir, and the
-SPA redirect rule client-side routing needs). To deploy:
-
-1. Sign up at [netlify.com](https://netlify.com) and click **Add new site →
-   Import an existing project**.
-2. Connect your GitHub account and pick this repo
-   (`l-sheard/Travel-Patch-Collection`).
-3. Build settings should auto-detect from `netlify.toml` — leave them as-is.
-4. Before the first deploy, add your Supabase credentials under **Site
-   configuration → Environment variables**:
-   - `VITE_SUPABASE_URL`
-   - `VITE_SUPABASE_ANON_KEY`
-   (same values as your local `.env` — these are safe to set here since
-   they're the public anon key, protected by Row Level Security, not a
-   secret key.)
-5. Deploy. Netlify will auto-redeploy on every push to `main`.
-6. On your phone, open the deployed URL in the browser and use "Add to Home
-   Screen" (Safari: Share → Add to Home Screen; Chrome/Android: menu →
-   Install app) to get the installed-PWA experience with camera access.
-
-## Going live for real signups
-
-The app is safe for strangers to sign up for out of the box (Postgres RLS
-scopes every table and storage bucket to `auth.uid()`, and the anon key is
-meant to be public). A few things only exist as dashboard/account
-configuration, not code, so do these once before sharing the link widely:
-
-1. **Custom SMTP for auth emails.** Supabase's built-in mailer is rate-limited
-   (a few emails/hour) and lands in spam — fine for development, not for a
-   real signup flow. In **Supabase → Authentication → Emails → SMTP Settings**,
-   plug in a free-tier provider (e.g. [Resend](https://resend.com) or
-   [Postmark](https://postmarkapp.com)). Without this, confirmation and
-   password-reset emails to real users may never arrive.
-2. **Site URL / Redirect URLs.** In **Supabase → Authentication → URL
-   Configuration**, set Site URL to your deployed URL (e.g. your Netlify
-   domain) and add it to Redirect URLs — required for the password-reset
-   link to land back on your app instead of `localhost`.
-3. **CAPTCHA on auth forms.** Create a free
-   [Cloudflare Turnstile](https://dash.cloudflare.com/?to=/:account/turnstile)
-   widget (widget mode: "Managed"), then:
-   - set `VITE_TURNSTILE_SITE_KEY` (Netlify env var + local `.env`) to the
-     site key — the app will automatically show the widget on sign-in,
-     sign-up, and password reset once it's set;
-   - in **Supabase → Authentication → Attack Protection**, enable CAPTCHA
-     protection and paste in the Turnstile *secret* key.
-   Without this, public signup is open to bot abuse.
-4. **Re-run `supabase/schema.sql`** if you set this project up before file
-   size limits were added — it now caps uploads at 15MB/image per bucket
-   (idempotent, safe to re-run).
-5. **Error monitoring (optional).** Create a free
-   [Sentry](https://sentry.io) project, set `VITE_SENTRY_DSN` (Netlify env
-   var), and uncaught errors from real visitors get reported instead of
-   silently failing.
+**PWA**
+`vite-plugin-pwa` (installable, offline asset caching)
 
 ## License
 
