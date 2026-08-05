@@ -12,8 +12,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       manifest: {
-        name: 'Travel Patches',
-        short_name: 'Patches',
+        name: 'My Travel Patches',
+        short_name: 'My Patches',
         description: 'A virtual collection of your travel patches',
         theme_color: '#1F6F78',
         background_color: '#FBF6EC',

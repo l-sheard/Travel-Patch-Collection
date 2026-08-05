@@ -67,7 +67,7 @@ export default function SignIn() {
           <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-teal/10 text-teal">
             <StampIcon className="h-7 w-7" />
           </div>
-          <h1 className="font-display text-2xl font-semibold text-teal-dark">Travel Patches</h1>
+          <h1 className="font-display text-2xl font-semibold text-teal-dark">My Travel Patches</h1>
           <p className="mt-1 text-sm text-ink/60">
             {mode === 'sign-in' && 'Welcome back — sign in to your collection.'}
             {mode === 'sign-up' && 'Create an account to start your collection.'}

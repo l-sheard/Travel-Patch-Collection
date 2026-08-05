@@ -1,4 +1,4 @@
--- Travel Patches: database schema
+-- My Travel Patches: database schema
 -- Run this once in the Supabase SQL Editor (Project → SQL Editor → New query).
 -- Safe to re-run: all statements are idempotent.
 

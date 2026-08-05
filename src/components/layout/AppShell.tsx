@@ -42,7 +42,7 @@ export default function AppShell() {
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 md:px-6">
           <NavLink to="/" className="flex items-center gap-2 font-display text-xl font-semibold text-teal-dark">
             <StampIcon className="h-7 w-7 text-terracotta" />
-            Travel Patches
+            My Travel Patches
           </NavLink>
 
           <nav className="hidden items-center gap-1 md:flex">
