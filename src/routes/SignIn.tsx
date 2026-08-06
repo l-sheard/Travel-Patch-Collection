@@ -11,6 +11,7 @@ export default function SignIn() {
   const [mode, setMode] = useState<Mode>('sign-in')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [info, setInfo] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -30,6 +31,11 @@ export default function SignIn() {
 
     if (isCaptchaEnabled && !captchaToken) {
       setError('Please complete the verification check.')
+      return
+    }
+
+    if (mode === 'sign-up' && password !== confirmPassword) {
+      setError("Passwords don't match.")
       return
     }
 
@@ -98,6 +104,21 @@ export default function SignIn() {
                 autoComplete={mode === 'sign-in' ? 'current-password' : 'new-password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                className="rounded-xl border border-ink/15 bg-white px-3 py-2 text-sm text-ink outline-none focus:border-teal focus:ring-2 focus:ring-teal/20"
+              />
+            </label>
+          )}
+
+          {mode === 'sign-up' && (
+            <label className="flex flex-col gap-1 text-sm font-medium text-ink/80">
+              Confirm password
+              <input
+                type="password"
+                required
+                minLength={6}
+                autoComplete="new-password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
                 className="rounded-xl border border-ink/15 bg-white px-3 py-2 text-sm text-ink outline-none focus:border-teal focus:ring-2 focus:ring-teal/20"
               />
             </label>
