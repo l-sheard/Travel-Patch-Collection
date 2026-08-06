@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import type { PatchWithPhotos } from '../types/patch'
 import { usePhotoUrl } from '../hooks/usePhotoUrl'
 import LoadingStamp from './LoadingStamp'
+import ProcessingOverlay from './ProcessingOverlay'
 
 type Props = {
   patch: PatchWithPhotos
@@ -27,7 +28,12 @@ export default function PatchCard({ patch }: Props) {
         ) : (
           <div className="flex h-full w-full items-center justify-center text-xs text-ink/30">No photo</div>
         )}
-        {isProcessing && <LoadingStamp className="absolute right-2 top-2 h-6 w-6" />}
+        {isProcessing && (
+          <>
+            <ProcessingOverlay />
+            <LoadingStamp className="absolute right-2 top-2 h-6 w-6" />
+          </>
+        )}
       </div>
       <div className="border-t border-dashed border-ink/15 px-3 py-2.5">
         <p className="font-display text-base font-semibold text-teal-dark">{patch.location_name}</p>

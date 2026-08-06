@@ -2,6 +2,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { StampIcon } from '../components/layout/icons'
 import LoadingStamp from '../components/LoadingStamp'
+import ProcessingOverlay from '../components/ProcessingOverlay'
 import PatchMap from '../components/LazyPatchMap'
 import PlaceholderPage from '../components/PlaceholderPage'
 import { useAuth } from '../context/AuthProvider'
@@ -88,10 +89,13 @@ function CoverPhoto({ photo, patchId }: { photo: PatchPhoto; patchId: string }) 
       )}
       <DeletePhotoButton photo={photo} className="absolute left-3 top-3" />
       {isProcessing && (
-        <div className="absolute right-3 top-3 flex items-center gap-1.5 rounded-full bg-teal px-2.5 py-1 text-xs font-medium text-cream shadow-sm">
-          <LoadingStamp className="h-4 w-4" />
-          Removing background…
-        </div>
+        <>
+          <ProcessingOverlay />
+          <div className="absolute right-3 top-3 flex items-center gap-1.5 rounded-full bg-teal px-2.5 py-1 text-xs font-medium text-cream shadow-sm">
+            <LoadingStamp className="h-4 w-4" />
+            Removing background…
+          </div>
+        </>
       )}
       {!isProcessing && photo.storage_path_gallery && (
         <button

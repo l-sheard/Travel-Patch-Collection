@@ -4,7 +4,7 @@ import { ScanIcon } from '../components/layout/icons'
 import LoadingStamp from '../components/LoadingStamp'
 import PatchCard from '../components/PatchCard'
 import { usePatches } from '../hooks/usePatches'
-import { removePatchBackground } from '../lib/backgroundRemoval'
+import { preloadBackgroundRemovalModel, removePatchBackground } from '../lib/backgroundRemoval'
 import {
   analyzePatchPhoto,
   cosineSimilarity,
@@ -29,10 +29,11 @@ export default function Scan() {
   const [preview, setPreview] = useState<string | null>(null)
   const analyzing = stage !== 'idle'
 
-  // Start warming the match model as soon as this page opens, so it's
+  // Start warming both models as soon as this page opens, so they're
   // likely already loaded by the time the user's actually picked a photo.
   useEffect(() => {
     preloadImageMatchModel()
+    preloadBackgroundRemovalModel()
   }, [])
 
   async function handleFile(e: ChangeEvent<HTMLInputElement>) {

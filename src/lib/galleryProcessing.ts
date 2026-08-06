@@ -1,13 +1,15 @@
 import type { QueryClient } from '@tanstack/react-query'
 import { supabase } from './supabaseClient'
 import { removePatchBackground } from './backgroundRemoval'
+import { isCloudflareBackgroundRemovalEnabled, removeBackgroundViaCloudflare } from './cloudflareBackgroundRemoval'
 import { analyzePatchPhoto } from './imageMatch'
 
 type RunArgs = {
   photoId: string
   patchId: string
   userId: string
-  sourceBlob: File | Blob
+  storagePathOriginal: string
+  getFallbackBlob: () => Promise<Blob>
   queryClient: QueryClient
 }
 
@@ -16,12 +18,32 @@ function invalidate(queryClient: QueryClient, patchId: string) {
   queryClient.invalidateQueries({ queryKey: ['patches'] })
 }
 
-async function runGalleryRemoval({ photoId, patchId, userId, sourceBlob, queryClient }: RunArgs) {
+/** Cloudflare Worker first (fast, server-side) if configured; on-device
+ * model otherwise or if the Worker call fails for any reason. */
+async function removeBackground(storagePathOriginal: string, getFallbackBlob: () => Promise<Blob>): Promise<Blob> {
+  if (isCloudflareBackgroundRemovalEnabled) {
+    try {
+      return await removeBackgroundViaCloudflare(storagePathOriginal)
+    } catch (err) {
+      console.error('Cloudflare background removal failed, falling back to on-device', err)
+    }
+  }
+  return removePatchBackground(await getFallbackBlob())
+}
+
+async function runGalleryRemoval({
+  photoId,
+  patchId,
+  userId,
+  storagePathOriginal,
+  getFallbackBlob,
+  queryClient,
+}: RunArgs) {
   try {
     await supabase.from('patch_photos').update({ gallery_status: 'processing' }).eq('id', photoId)
     invalidate(queryClient, patchId)
 
-    const resultBlob = await removePatchBackground(sourceBlob)
+    const resultBlob = await removeBackground(storagePathOriginal, getFallbackBlob)
     const galleryPath = `${userId}/${patchId}/${photoId}-gallery.png`
 
     const { error: uploadError } = await supabase.storage
@@ -55,15 +77,17 @@ async function runGalleryRemoval({ photoId, patchId, userId, sourceBlob, queryCl
   }
 }
 
-/** Fire-and-forget: runs client-side background removal on a freshly uploaded photo. */
+/** Fire-and-forget: runs background removal (Cloudflare Worker if configured,
+ * else on-device) on a freshly uploaded photo. */
 export function processGalleryImage(args: {
   photoId: string
   patchId: string
   userId: string
+  storagePathOriginal: string
   originalFile: File
   queryClient: QueryClient
 }) {
-  return runGalleryRemoval({ ...args, sourceBlob: args.originalFile })
+  return runGalleryRemoval({ ...args, getFallbackBlob: async () => args.originalFile })
 }
 
 /** Re-runs background removal against the already-uploaded original (no re-upload needed). */
@@ -74,10 +98,12 @@ export async function reprocessGalleryImage(args: {
   storagePathOriginal: string
   queryClient: QueryClient
 }) {
-  const { data: blob, error } = await supabase.storage.from('patch-originals').download(args.storagePathOriginal)
-  if (error || !blob) {
-    console.error('Failed to download original photo for reprocessing', error)
-    return
-  }
-  return runGalleryRemoval({ ...args, sourceBlob: blob })
+  return runGalleryRemoval({
+    ...args,
+    getFallbackBlob: async () => {
+      const { data: blob, error } = await supabase.storage.from('patch-originals').download(args.storagePathOriginal)
+      if (error || !blob) throw error ?? new Error('Failed to download original photo for reprocessing')
+      return blob
+    },
+  })
 }

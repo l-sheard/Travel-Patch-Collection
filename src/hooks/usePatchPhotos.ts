@@ -71,6 +71,7 @@ export function useUploadPatchPhoto() {
           photoId: data.id,
           patchId: variables.patchId,
           userId: user.id,
+          storagePathOriginal: data.storage_path_original,
           originalFile: variables.file,
           queryClient,
         })

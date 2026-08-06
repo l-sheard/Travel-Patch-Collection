@@ -1,4 +1,4 @@
-import { removeBackground } from '@imgly/background-removal'
+import { preload, removeBackground } from '@imgly/background-removal'
 
 // High threshold: matting models leave a soft, semi-transparent feather at
 // edges (and sometimes a faint shadow) — counting those as "content" for the
@@ -12,17 +12,46 @@ const CROP_PADDING = 12
 // substantially, since that cost scales with pixel count, not just model size.
 const MAX_INPUT_DIMENSION = 1600
 
+// Measured: per-image inference is a few hundred ms. The real cost is the
+// *first* call downloading model weights + compiling the WASM/WebGPU
+// runtime + creating the ONNX session — 50s+ on a cold start. Preloading
+// (see below) overlaps that with time the user spends filling out the
+// form/picking a photo, instead of eating it on submit.
+//
+// The library memoizes sessions by JSON.stringify(config) (see
+// @imgly/background-removal's `init`) — preload() and removeBackground()
+// MUST be called with this exact same object, key order included, or the
+// preload is wasted and a second session gets built from scratch on submit.
+const REMOVAL_CONFIG = {
+  model: 'isnet_quint8',
+  device: 'gpu',
+  output: { format: 'image/png', quality: 0.9 },
+} as const
+
+// Guards against React StrictMode's dev-mode double-effect-invocation
+// double-logging/re-timing this (the library's own memoization already makes
+// a second real preload() call harmless, this is just about clean output).
+let preloadPromise: Promise<void> | null = null
+
+/** Kicks off the (memoized) model download/compile early — call as soon as
+ * a screen that will need background removal mounts. */
+export function preloadBackgroundRemovalModel() {
+  if (preloadPromise) return
+  console.log('[bg-removal] preload starting…')
+  const start = performance.now()
+  preloadPromise = preload(REMOVAL_CONFIG)
+    .then(() => {
+      console.log(`[bg-removal] preload finished in ${Math.round(performance.now() - start)}ms`)
+    })
+    .catch((err) => {
+      console.error('[bg-removal] preload failed', err)
+      preloadPromise = null // allow a retry on next call
+    })
+}
+
 export async function removePatchBackground(image: File | Blob): Promise<Blob> {
   const resized = await resizeIfLarger(image, MAX_INPUT_DIMENSION)
-  const result = await removeBackground(resized, {
-    // Quantized model: meaningfully faster than the default fp16 model, at
-    // an edge-quality cost that's not visible once cropped to thumbnail size.
-    model: 'isnet_quint8',
-    // Safe to request unconditionally — the library feature-detects WebGPU
-    // support and falls back to (already multi-threaded) WASM otherwise.
-    device: 'gpu',
-    output: { format: 'image/png', quality: 0.9 },
-  })
+  const result = await removeBackground(resized, REMOVAL_CONFIG)
   return cropToContent(result)
 }
 

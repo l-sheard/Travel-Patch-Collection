@@ -1,5 +1,7 @@
-import { useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import PhotoCapture from './PhotoCapture'
+import { preloadBackgroundRemovalModel } from '../lib/backgroundRemoval'
+import { isCloudflareBackgroundRemovalEnabled } from '../lib/cloudflareBackgroundRemoval'
 import CompanionsInput from './CompanionsInput'
 import AccommodationsInput from './AccommodationsInput'
 import RestaurantsInput from './RestaurantsInput'
@@ -36,6 +38,18 @@ export default function PatchForm({
   onSubmit,
 }: Props) {
   const { data: trips } = useTrips()
+
+  // Cover photo upload triggers background removal. When the Cloudflare
+  // Worker is configured it's the primary path (fast, no local warm-up
+  // needed) — only preload the on-device model as a fallback when the
+  // Worker isn't available, so we're not eating an 18s+ cold start for
+  // nothing on the common path.
+  useEffect(() => {
+    if (!isCloudflareBackgroundRemovalEnabled) {
+      preloadBackgroundRemovalModel()
+    }
+  }, [])
+
   const [locationName, setLocationName] = useState(initialValues?.location_name ?? '')
   const [country, setCountry] = useState(initialValues?.country ?? '')
   const [lat, setLat] = useState<number | null>(initialValues?.lat ?? null)

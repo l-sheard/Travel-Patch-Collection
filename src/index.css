@@ -14,6 +14,7 @@
   --font-sans: "Inter", system-ui, sans-serif;
 
   --animate-stamp-press: stamp-press 1.1s ease-in-out infinite;
+  --animate-glass-pulse: glass-pulse 2.2s ease-in-out infinite;
 }
 
 @keyframes stamp-press {
@@ -23,6 +24,18 @@
   }
   50% {
     transform: scale(0.85) translateY(1px);
+  }
+}
+
+@keyframes glass-pulse {
+  0%,
+  100% {
+    backdrop-filter: blur(5px);
+    background-color: rgb(255 255 255 / 0.2);
+  }
+  50% {
+    backdrop-filter: blur(9px);
+    background-color: rgb(255 255 255 / 0.32);
   }
 }
 

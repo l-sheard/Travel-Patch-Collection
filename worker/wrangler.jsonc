@@ -1,0 +1,13 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "travel-patches-bg-removal",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-01-01",
+  "vars": {
+    // Public-safe values (same ones already used client-side) — not secrets.
+    "SUPABASE_URL": "https://ilymsmgssrkrnrkobayu.supabase.co",
+    "SUPABASE_ANON_KEY": "sb_publishable_sfz8I8S-ZSa5l9lfKw0koQ_NYA3BR4o",
+    // Comma-separated list of allowed origins for CORS.
+    "ALLOWED_ORIGINS": "https://mytravelpatches.com,http://localhost:5173"
+  }
+}
