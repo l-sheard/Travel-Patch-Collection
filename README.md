@@ -63,7 +63,3 @@ push/PR)
 
 **PWA**
 `vite-plugin-pwa` (installable, offline asset caching)
-
-## License
-
-MIT — see [LICENSE](LICENSE).
