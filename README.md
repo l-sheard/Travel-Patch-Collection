@@ -25,11 +25,13 @@ and use it.
   restaurants, and memorable dishes with their own photos.
 - **Trips** — group patches from the same trip together with a shared
   itinerary, highlights, and review.
-- **Gallery** — every patch rendered as a background-removed sticker
-  (processed on-device), filterable and sortable.
+- **Gallery** — every patch rendered as a background-removed sticker,
+  filterable and sortable.
 - **Map view** — the whole collection plotted geographically.
 - **Installable PWA** — add it to your home screen on iOS/Android for a
   native-app-like experience with camera access, offline-cached assets.
+- **Account management** — change your email or password, or permanently
+  delete your account and everything in it, from Settings.
 
 ## Tech stack
 
@@ -38,12 +40,15 @@ React 19 + TypeScript + Vite · Tailwind CSS v4 · React Router · TanStack
 Query
 
 **Backend**
-Supabase — Postgres (with row-level security on every table), Auth, and
-Storage (private buckets, size/type-limited uploads)
+Supabase — Postgres (with row-level security on every table), Auth, Storage
+(private buckets, size/type-limited uploads), and an Edge Function for
+account deletion · Cloudflare Workers for server-side background removal
 
-**On-device machine learning / image processing**
-- `@tensorflow-models/mobilenet` — scan-match embeddings
-- `@imgly/background-removal` — gallery "sticker" processing
+**Machine learning / image processing**
+- `@tensorflow-models/mobilenet` — on-device scan-match embeddings
+- Background removal via Cloudflare Images (`segment=foreground`), with an
+  on-device model (`@imgly/background-removal`) as a fallback if the Worker
+  is unavailable
 - Leaflet + OpenStreetMap/Nominatim — mapping and geocoding
 
 **Auth & security**
