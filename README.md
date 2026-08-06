@@ -1,5 +1,7 @@
 # My Travel Patches
 
+![My Travel Patches — collect memories, map your adventures](.github/preview.png)
+
 **[mytravelpatches.com →](https://mytravelpatches.com/)**
 
 An installable web app for cataloguing a physical travel patch collection.
