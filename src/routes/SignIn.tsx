@@ -75,7 +75,7 @@ export default function SignIn() {
           </div>
           <h1 className="font-display text-2xl font-semibold text-teal-dark">My Travel Patches</h1>
           <p className="mt-1 text-sm text-ink/60">
-            {mode === 'sign-in' && 'Welcome back — sign in to your collection.'}
+            {mode === 'sign-in' && 'Sign in to your collection.'}
             {mode === 'sign-up' && 'Create an account to start your collection.'}
             {mode === 'forgot' && "Enter your email and we'll send a reset link."}
           </p>

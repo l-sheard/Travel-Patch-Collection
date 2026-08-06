@@ -15,6 +15,7 @@ type AuthContextValue = {
   ) => Promise<{ error: string | null; needsEmailConfirmation: boolean }>
   sendPasswordReset: (email: string, captchaToken?: string) => Promise<{ error: string | null }>
   updatePassword: (newPassword: string) => Promise<{ error: string | null }>
+  updateEmail: (newEmail: string) => Promise<{ error: string | null }>
   cancelPasswordRecovery: () => void
   signOut: () => Promise<void>
 }
@@ -74,6 +75,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async updatePassword(newPassword) {
       const { error } = await supabase.auth.updateUser({ password: newPassword })
       if (!error) setIsPasswordRecovery(false)
+      return { error: error?.message ?? null }
+    },
+    async updateEmail(newEmail) {
+      const { error } = await supabase.auth.updateUser({ email: newEmail })
       return { error: error?.message ?? null }
     },
     cancelPasswordRecovery() {
