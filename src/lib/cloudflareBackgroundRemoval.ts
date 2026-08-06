@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient'
+import { cropAndSquareToContent } from './backgroundRemoval'
 
 // Optional: only used when a deployed Worker URL is configured (see worker/).
 // Falls back to on-device removal (backgroundRemoval.ts) otherwise/on failure.
@@ -37,5 +38,30 @@ export async function removeBackgroundViaCloudflare(storagePathOriginal: string)
   if (!response.ok) {
     throw new Error(`Cloudflare background removal failed (${response.status})`)
   }
-  return response.blob()
+  // The Worker returns the segmented image at full frame size — crop to the
+  // patch's content and square it, same post-processing as the on-device
+  // path, so gallery tiles look consistent regardless of which backend ran.
+  return cropAndSquareToContent(await response.blob())
+}
+
+/** Same as removeBackgroundViaCloudflare, but for a photo that isn't
+ * otherwise persisted (e.g. a scan-to-match snapshot) — the Worker needs a
+ * fetchable URL, so this uploads to a scratch path, processes it, then
+ * removes the scratch upload regardless of outcome. */
+export async function removeBackgroundViaCloudflareForFile(file: File | Blob, userId: string): Promise<Blob> {
+  if (!WORKER_URL) throw new Error('Cloudflare background removal is not configured')
+
+  const ext = file instanceof File ? (file.name.split('.').pop()?.toLowerCase() ?? 'jpg') : 'jpg'
+  const tempPath = `${userId}/_scan-temp/${crypto.randomUUID()}.${ext}`
+
+  const { error: uploadError } = await supabase.storage
+    .from('patch-originals')
+    .upload(tempPath, file, { contentType: file.type || 'image/jpeg' })
+  if (uploadError) throw uploadError
+
+  try {
+    return await removeBackgroundViaCloudflare(tempPath)
+  } finally {
+    void supabase.storage.from('patch-originals').remove([tempPath])
+  }
 }

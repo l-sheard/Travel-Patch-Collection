@@ -52,7 +52,7 @@ export function preloadBackgroundRemovalModel() {
 export async function removePatchBackground(image: File | Blob): Promise<Blob> {
   const resized = await resizeIfLarger(image, MAX_INPUT_DIMENSION)
   const result = await removeBackground(resized, REMOVAL_CONFIG)
-  return cropToContent(result)
+  return cropAndSquareToContent(result)
 }
 
 /** Downscales to `maxDimension` on the long edge; returns the original unchanged if already smaller. */
@@ -82,9 +82,12 @@ async function resizeIfLarger(image: File | Blob, maxDimension: number): Promise
   }
 }
 
-/** removeBackground() keeps the original canvas size — crop the transparent
- * margins so the patch actually fills its frame in the UI. */
-async function cropToContent(blob: Blob): Promise<Blob> {
+/** Crops to the tight bounding box of the patch, then pads that out to a
+ * square (transparent margins on the shorter axis, content centered) so it
+ * fills a square gallery tile edge-to-edge instead of leaving empty space
+ * on two sides. Exported so the Cloudflare Worker path can apply the same
+ * post-processing regardless of which backend did the actual segmentation. */
+export async function cropAndSquareToContent(blob: Blob): Promise<Blob> {
   const url = URL.createObjectURL(blob)
   try {
     const img = new Image()
@@ -127,11 +130,16 @@ async function cropToContent(blob: Blob): Promise<Blob> {
 
     const cropWidth = maxX - minX + 1
     const cropHeight = maxY - minY + 1
+    const squareSize = Math.max(cropWidth, cropHeight)
+    const offsetX = Math.round((squareSize - cropWidth) / 2)
+    const offsetY = Math.round((squareSize - cropHeight) / 2)
 
     const cropCanvas = document.createElement('canvas')
-    cropCanvas.width = cropWidth
-    cropCanvas.height = cropHeight
-    cropCanvas.getContext('2d')!.drawImage(canvas, minX, minY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight)
+    cropCanvas.width = squareSize
+    cropCanvas.height = squareSize
+    cropCanvas
+      .getContext('2d')!
+      .drawImage(canvas, minX, minY, cropWidth, cropHeight, offsetX, offsetY, cropWidth, cropHeight)
 
     return await new Promise<Blob>((resolve, reject) => {
       cropCanvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Failed to export cropped image'))), 'image/png')

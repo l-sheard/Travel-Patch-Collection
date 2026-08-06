@@ -3,8 +3,10 @@ import { Link, useNavigate } from 'react-router-dom'
 import { ScanIcon } from '../components/layout/icons'
 import LoadingStamp from '../components/LoadingStamp'
 import PatchCard from '../components/PatchCard'
+import { useAuth } from '../context/AuthProvider'
 import { usePatches } from '../hooks/usePatches'
 import { preloadBackgroundRemovalModel, removePatchBackground } from '../lib/backgroundRemoval'
+import { isCloudflareBackgroundRemovalEnabled, removeBackgroundViaCloudflareForFile } from '../lib/cloudflareBackgroundRemoval'
 import {
   analyzePatchPhoto,
   cosineSimilarity,
@@ -22,6 +24,7 @@ type Candidate = { patch: PatchWithPhotos; score: number }
 
 export default function Scan() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const { data: patches } = usePatches()
   const [stage, setStage] = useState<'idle' | 'isolating' | 'comparing'>('idle')
   const [error, setError] = useState<string | null>(null)
@@ -31,10 +34,25 @@ export default function Scan() {
 
   // Start warming both models as soon as this page opens, so they're
   // likely already loaded by the time the user's actually picked a photo.
+  // Skip the background-removal preload when Cloudflare's configured — it's
+  // the primary path there, the on-device model is only a fallback.
   useEffect(() => {
     preloadImageMatchModel()
-    preloadBackgroundRemovalModel()
+    if (!isCloudflareBackgroundRemovalEnabled) {
+      preloadBackgroundRemovalModel()
+    }
   }, [])
+
+  async function isolatePatch(file: File): Promise<Blob> {
+    if (isCloudflareBackgroundRemovalEnabled && user) {
+      try {
+        return await removeBackgroundViaCloudflareForFile(file, user.id)
+      } catch (err) {
+        console.error('Cloudflare background removal failed for scan, falling back to on-device', err)
+      }
+    }
+    return removePatchBackground(file)
+  }
 
   async function handleFile(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -50,7 +68,7 @@ export default function Scan() {
       // Isolate the patch the same way stored reference photos are isolated
       // (background/hand/lighting removed) so the comparison is apples-to-apples.
       setStage('isolating')
-      const isolated = await removePatchBackground(file)
+      const isolated = await isolatePatch(file)
 
       setStage('comparing')
       const { embedding: scanEmbedding, phash: scanPhash } = await analyzePatchPhoto(isolated)
