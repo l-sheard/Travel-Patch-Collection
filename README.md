@@ -2,8 +2,6 @@
 
 ![My Travel Patches — collect memories, map your adventures](.github/preview.png)
 
-**[mytravelpatches.com →](https://mytravelpatches.com/)**
-
 An installable web app for cataloguing a physical travel patch collection.
 Scan a patch with your phone's camera and it's matched against ones already
 logged using an on-device computer vision model. Add a new one with its trip
