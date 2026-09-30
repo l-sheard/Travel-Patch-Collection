@@ -1,63 +1,29 @@
 # My Travel Patches
 
+An installable web app for cataloguing a physical travel patch collection. Scan a patch with your phone to match it against patches you've already logged using on-device computer vision, record memories and details from each trip, and explore your collection through an interactive world map and sticker-style gallery.
+
 ![My Travel Patches — collect memories, map your adventures](.github/preview.png)
-
-An installable web app for cataloguing a physical travel patch collection.
-Scan a patch with your phone's camera and it's matched against ones already
-logged using an on-device computer vision model. Add a new one with its trip
-dates, location, companions, and photos, and it's automatically plotted on a
-world map and turned into a background-removed "sticker" for the gallery
-view.
-
-Full auth with password reset and CAPTCHA-protected signup, Postgres
-row-level security scoping every user to their own data, upload validation,
-and CI running lint/test/build on every push. Anyone can create an account
-and use it.
 
 ## Features
 
-- **Scan-to-match** — point the camera at a patch and it's matched against
-  your existing collection via on-device MobileNet embeddings + perceptual
-  hashing, so duplicates get caught before you re-log the same patch.
-- **Rich per-patch logging** — location (geocoded and pinned on a map),
-  trip/purchase dates, travel companions, holiday type tags, star rating
-  and review, cost, accommodations (with ratings/notes/nights/people),
-  restaurants, and memorable dishes with their own photos.
-- **Trips** — group patches from the same trip together with a shared
-  itinerary, highlights, and review.
-- **Gallery** — every patch rendered as a background-removed sticker,
-  filterable and sortable.
-- **Map view** — the whole collection plotted geographically.
-- **Installable PWA** — add it to your home screen on iOS/Android for a
-  native-app-like experience with camera access, offline-cached assets.
-- **Account management** — change your email or password, or permanently
-  delete your account and everything in it, from Settings.
+- **Scan-to-match** — scan a patch with your phone's camera and match it against your existing collection using on-device MobileNet embeddings and perceptual hashing.
+- **Rich patch logging** — record locations, trip and purchase dates, travel companions, holiday types, ratings, reviews, costs, accommodation, restaurants, memorable dishes, and photos.
+- **Trips** — group patches from the same trip together with a shared itinerary, highlights, and review.
+- **Gallery** — browse patches as background-removed stickers, with filtering and sorting.
+- **Interactive map** — view your entire patch collection geographically, with locations automatically geocoded and plotted on a world map.
+- **Background removal** — automatically remove patch backgrounds to create sticker-style images for the gallery.
+- **Installable PWA** — install the app on iOS or Android with camera access.
+- **Account management** — create an account, reset or change your password, change your email, and permanently delete your account and its data.
 
-## Tech stack
+## Tech Stack
 
-**Frontend**
-React 19 + TypeScript + Vite · Tailwind CSS v4 · React Router · TanStack
-Query
-
-**Backend**
-Supabase — Postgres (with row-level security on every table), Auth, Storage
-(private buckets, size/type-limited uploads), and an Edge Function for
-account deletion · Cloudflare Workers for server-side background removal
-
-**Machine learning / image processing**
-- `@tensorflow-models/mobilenet` — on-device scan-match embeddings
-- Background removal via Cloudflare Images (`segment=foreground`), with an
-  on-device model (`@imgly/background-removal`) as a fallback if the Worker
-  is unavailable
-- Leaflet + OpenStreetMap/Nominatim — mapping and geocoding
-
-**Auth & security**
-Supabase Auth (email/password, password reset) · Cloudflare Turnstile
-CAPTCHA on auth forms · Sentry error monitoring
-
-**Testing & CI**
-Vitest + Testing Library · GitHub Actions (lint, test, build on every
-push/PR)
-
-**PWA**
-`vite-plugin-pwa` (installable, offline asset caching)
+- **React & TypeScript** — frontend UI and application logic
+- **Tailwind CSS** — application styling
+- **Vite** — development and production build tooling
+- **Supabase** — PostgreSQL database, authentication, storage, row-level security, and account deletion Edge Function
+- **TensorFlow.js & MobileNet** — on-device image embeddings for patch matching
+- **Cloudflare Workers & Cloudflare Images** — server-side patch background removal
+- **IMG.LY Background Removal** — on-device fallback for background removal
+- **Leaflet & OpenStreetMap** — interactive mapping
+- **Cloudflare Turnstile** — CAPTCHA protection for authentication
+- **Vite PWA** — PWA installation
