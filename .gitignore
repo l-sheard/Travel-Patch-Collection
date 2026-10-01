@@ -36,3 +36,6 @@ worker/.dev.vars
 
 # supabase CLI local cache
 supabase/.temp
+
+# Claude Code project instructions — kept local, not published
+CLAUDE.md
