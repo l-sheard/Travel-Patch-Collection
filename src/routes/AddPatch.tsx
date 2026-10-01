@@ -1,15 +1,15 @@
 import { useNavigate } from 'react-router-dom'
 import { PlusIcon } from '../components/layout/icons'
 import PatchForm from '../components/PatchForm'
-import { useCreatePatch } from '../hooks/usePatches'
-import { useUploadPatchPhoto } from '../hooks/usePatchPhotos'
+import { useCreatePatchWithCover } from '../hooks/usePatches'
+import { useUploadTripPhoto } from '../hooks/usePatchPhotos'
 import { useAddPatchDish } from '../hooks/usePatchDishes'
 import { useResolveTripId } from '../hooks/useTrips'
 
 export default function AddPatch() {
   const navigate = useNavigate()
-  const createPatch = useCreatePatch()
-  const uploadPhoto = useUploadPatchPhoto()
+  const createPatch = useCreatePatchWithCover()
+  const uploadTripPhoto = useUploadTripPhoto()
   const addDish = useAddPatchDish()
   const resolveTripId = useResolveTripId()
 
@@ -26,17 +26,26 @@ export default function AddPatch() {
         submitLabel="Save patch"
         requirePatchPhoto
         onSubmit={async (values, patchPhoto, tripPhotos, tripName, dishes) => {
+          if (!patchPhoto) throw new Error('Add a photo of the patch.')
+
           const trip_id = await resolveTripId(tripName)
-          const patch = await createPatch.mutateAsync({ ...values, trip_id })
-          if (patchPhoto) {
-            await uploadPhoto.mutateAsync({ patchId: patch.id, file: patchPhoto, isCover: true })
-          }
+
+          // The patch and its photo of the patch are created together, so
+          // there's no point at which a patch exists without one.
+          const { patch } = await createPatch.mutateAsync({
+            input: { ...values, trip_id },
+            coverFile: patchPhoto,
+          })
+
+          // Everything below is optional. Failing here leaves a patch that is
+          // still valid, just missing some of its extras.
           for (const file of tripPhotos) {
-            await uploadPhoto.mutateAsync({ patchId: patch.id, file, isCover: false })
+            await uploadTripPhoto.mutateAsync({ patchId: patch.id, file })
           }
           for (const dish of dishes) {
             await addDish.mutateAsync({ patchId: patch.id, name: dish.name.trim(), file: dish.file })
           }
+
           navigate(`/patches/${patch.id}`)
         }}
       />

@@ -27,11 +27,13 @@ function TextSection({ label, value }: { label: string; value: string | null }) 
   )
 }
 
+/** Trip photos only — the photo of the patch itself can't be removed on its
+ * own, it's replaced from Edit patch (see supabase/schema.sql invariants). */
 function DeletePhotoButton({ photo, className }: { photo: PatchPhoto; className?: string }) {
   const deletePhoto = useDeletePatchPhoto()
 
   function handleClick() {
-    if (!confirm(photo.is_cover ? 'Remove this patch photo? It also stops being used for the gallery and scan matching.' : 'Remove this photo?')) return
+    if (!confirm('Remove this photo?')) return
     deletePhoto.mutate(photo)
   }
 
@@ -76,6 +78,7 @@ function CoverPhoto({ photo, patchId }: { photo: PatchPhoto; patchId: string }) 
       patchId,
       userId: user.id,
       storagePathOriginal: photo.storage_path_original,
+      previousGalleryPath: photo.storage_path_gallery,
       queryClient,
     })
   }
@@ -87,7 +90,6 @@ function CoverPhoto({ photo, patchId }: { photo: PatchPhoto; patchId: string }) 
       ) : (
         <div className="h-full w-full animate-pulse rounded-xl bg-ink/5" />
       )}
-      <DeletePhotoButton photo={photo} className="absolute left-3 top-3" />
       {isProcessing && (
         <>
           <ProcessingOverlay />

@@ -1,5 +1,7 @@
 import { supabase } from './supabaseClient'
 import { cropAndSquareToContent } from './backgroundRemoval'
+import { fileExtension, scanTempPath } from './storagePaths'
+import { removeStorageObjects } from './storageLifecycle'
 
 // Optional: only used when a deployed Worker URL is configured (see worker/).
 // Falls back to on-device removal (backgroundRemoval.ts) otherwise/on failure.
@@ -51,8 +53,7 @@ export async function removeBackgroundViaCloudflare(storagePathOriginal: string)
 export async function removeBackgroundViaCloudflareForFile(file: File | Blob, userId: string): Promise<Blob> {
   if (!WORKER_URL) throw new Error('Cloudflare background removal is not configured')
 
-  const ext = file instanceof File ? (file.name.split('.').pop()?.toLowerCase() ?? 'jpg') : 'jpg'
-  const tempPath = `${userId}/_scan-temp/${crypto.randomUUID()}.${ext}`
+  const tempPath = scanTempPath(userId, crypto.randomUUID(), fileExtension(file))
 
   const { error: uploadError } = await supabase.storage
     .from('patch-originals')
@@ -62,6 +63,8 @@ export async function removeBackgroundViaCloudflareForFile(file: File | Blob, us
   try {
     return await removeBackgroundViaCloudflare(tempPath)
   } finally {
-    void supabase.storage.from('patch-originals').remove([tempPath])
+    // No row ever references this, so it is always safe to delete and never
+    // leaves anything dangling if the removal fails.
+    void removeStorageObjects([{ bucket: 'patch-originals', path: tempPath }])
   }
 }

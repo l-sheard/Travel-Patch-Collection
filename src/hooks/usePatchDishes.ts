@@ -2,6 +2,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabaseClient'
 import type { PatchDish } from '../types/patch'
 import { useAuth } from '../context/AuthProvider'
+import { dishPhotoPath, fileExtension } from '../lib/storagePaths'
+import { removeStorageObjects, uploadThenRecord } from '../lib/storageLifecycle'
 
 export function usePatchDishes(patchId: string | undefined) {
   return useQuery({
@@ -34,24 +36,28 @@ export function useAddPatchDish() {
     }) => {
       if (!user) throw new Error('Not signed in')
       const dishId = crypto.randomUUID()
-      let path: string | null = null
 
-      if (file) {
-        const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
-        path = `${user.id}/${patchId}/${dishId}.${ext}`
-        const { error: uploadError } = await supabase.storage
-          .from('patch-dishes')
-          .upload(path, file, { contentType: file.type })
-        if (uploadError) throw uploadError
+      const insertDish = async (storagePath: string | null) => {
+        const { data, error } = await supabase
+          .from('patch_dishes')
+          .insert({ id: dishId, patch_id: patchId, user_id: user.id, name, storage_path: storagePath })
+          .select()
+          .single()
+        if (error) throw error
+        return data as PatchDish
       }
 
-      const { data, error } = await supabase
-        .from('patch_dishes')
-        .insert({ id: dishId, patch_id: patchId, user_id: user.id, name, storage_path: path })
-        .select()
-        .single()
-      if (error) throw error
-      return data as PatchDish
+      // A dish can be text-only, in which case no storage is involved at all
+      // and the insert is simply atomic on its own.
+      if (!file) return insertDish(null)
+
+      const path = dishPhotoPath(user.id, patchId, dishId, fileExtension(file))
+      return uploadThenRecord({
+        bucket: 'patch-dishes',
+        path,
+        file,
+        record: () => insertDish(path),
+      })
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['patch-dishes', variables.patchId] })
@@ -63,11 +69,14 @@ export function useDeletePatchDish() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (dish: PatchDish) => {
-      if (dish.storage_path) {
-        await supabase.storage.from('patch-dishes').remove([dish.storage_path])
-      }
+      // Row first, then the file: if the delete fails the photo is still there
+      // and still referenced, rather than the row outliving its image.
       const { error } = await supabase.from('patch_dishes').delete().eq('id', dish.id)
       if (error) throw error
+
+      if (dish.storage_path) {
+        await removeStorageObjects([{ bucket: 'patch-dishes', path: dish.storage_path }])
+      }
     },
     onSuccess: (_data, dish) => {
       queryClient.invalidateQueries({ queryKey: ['patch-dishes', dish.patch_id] })

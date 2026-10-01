@@ -3,7 +3,7 @@ import { StampIcon } from '../components/layout/icons'
 import PatchForm from '../components/PatchForm'
 import PlaceholderPage from '../components/PlaceholderPage'
 import { usePatch, useUpdatePatch } from '../hooks/usePatches'
-import { useUploadPatchPhoto } from '../hooks/usePatchPhotos'
+import { useReplacePatchCover, useUploadTripPhoto } from '../hooks/usePatchPhotos'
 import { useAddPatchDish } from '../hooks/usePatchDishes'
 import { useResolveTripId, useTrip } from '../hooks/useTrips'
 
@@ -13,7 +13,8 @@ export default function EditPatch() {
   const { data: patch, isLoading } = usePatch(id)
   const { data: currentTrip, isLoading: tripLoading } = useTrip(patch?.trip_id)
   const updatePatch = useUpdatePatch()
-  const uploadPhoto = useUploadPatchPhoto()
+  const replaceCover = useReplacePatchCover()
+  const uploadTripPhoto = useUploadTripPhoto()
   const addDish = useAddPatchDish()
   const resolveTripId = useResolveTripId()
 
@@ -41,11 +42,13 @@ export default function EditPatch() {
         onSubmit={async (values, patchPhoto, tripPhotos, tripName, dishes) => {
           const trip_id = await resolveTripId(tripName)
           await updatePatch.mutateAsync({ id: patch.id, input: { ...values, trip_id } })
+          // Supplying a patch photo here replaces the existing one; leaving it
+          // empty keeps the current one.
           if (patchPhoto) {
-            await uploadPhoto.mutateAsync({ patchId: patch.id, file: patchPhoto, isCover: true })
+            await replaceCover.mutateAsync({ patchId: patch.id, file: patchPhoto })
           }
           for (const file of tripPhotos) {
-            await uploadPhoto.mutateAsync({ patchId: patch.id, file, isCover: false })
+            await uploadTripPhoto.mutateAsync({ patchId: patch.id, file })
           }
           for (const dish of dishes) {
             await addDish.mutateAsync({ patchId: patch.id, name: dish.name.trim(), file: dish.file })

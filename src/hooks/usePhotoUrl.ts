@@ -1,7 +1,6 @@
-import { useQuery } from '@tanstack/react-query'
+﻿import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabaseClient'
-
-export type PhotoBucket = 'patch-originals' | 'patch-gallery' | 'patch-dishes'
+import type { StorageBucket } from '../lib/storagePaths'
 
 const SIGNED_URL_EXPIRY = 3600
 const BATCH_WINDOW_MS = 10
@@ -12,10 +11,10 @@ type PendingEntry = { resolve: (url: string) => void; reject: (err: Error) => vo
 // requests (one per usePhotoUrl() call). This coalesces every call that
 // lands within the same short window into one createSignedUrls() request
 // per bucket instead.
-const pendingByBucket = new Map<PhotoBucket, Map<string, PendingEntry[]>>()
-const flushScheduled = new Set<PhotoBucket>()
+const pendingByBucket = new Map<StorageBucket, Map<string, PendingEntry[]>>()
+const flushScheduled = new Set<StorageBucket>()
 
-function scheduleFlush(bucket: PhotoBucket) {
+function scheduleFlush(bucket: StorageBucket) {
   if (flushScheduled.has(bucket)) return
   flushScheduled.add(bucket)
   setTimeout(() => {
@@ -24,7 +23,7 @@ function scheduleFlush(bucket: PhotoBucket) {
   }, BATCH_WINDOW_MS)
 }
 
-async function flushBucket(bucket: PhotoBucket) {
+async function flushBucket(bucket: StorageBucket) {
   const pending = pendingByBucket.get(bucket)
   if (!pending || pending.size === 0) return
   pendingByBucket.delete(bucket)
@@ -50,7 +49,7 @@ async function flushBucket(bucket: PhotoBucket) {
   }
 }
 
-function batchedCreateSignedUrl(bucket: PhotoBucket, path: string): Promise<string> {
+function batchedCreateSignedUrl(bucket: StorageBucket, path: string): Promise<string> {
   return new Promise((resolve, reject) => {
     let byPath = pendingByBucket.get(bucket)
     if (!byPath) {
@@ -65,7 +64,7 @@ function batchedCreateSignedUrl(bucket: PhotoBucket, path: string): Promise<stri
   })
 }
 
-export function usePhotoUrl(bucket: PhotoBucket, path: string | null | undefined) {
+export function usePhotoUrl(bucket: StorageBucket, path: string | null | undefined) {
   return useQuery({
     queryKey: ['photo-url', bucket, path],
     queryFn: () => batchedCreateSignedUrl(bucket, path as string),

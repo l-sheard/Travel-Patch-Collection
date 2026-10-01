@@ -146,7 +146,9 @@ export default function PatchForm({
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       <Field label="Photo of the patch" required={requirePatchPhoto}>
         <p className="mb-1.5 -mt-0.5 text-xs font-normal text-ink/50">
-          This becomes your gallery sticker and lets you scan this patch later to find it again.
+          {requirePatchPhoto
+            ? 'This becomes your gallery sticker and lets you scan this patch later to find it again.'
+            : 'Adding a photo here replaces the current photo of the patch — your gallery sticker and scan match. Leave it empty to keep the one you have.'}
         </p>
         <PhotoCapture files={patchPhotoFiles} onChange={setPatchPhotoFiles} max={1} addLabel="Add photo" />
       </Field>
