@@ -9,5 +9,26 @@
     "SUPABASE_ANON_KEY": "sb_publishable_sfz8I8S-ZSa5l9lfKw0koQ_NYA3BR4o",
     // Comma-separated list of allowed origins for CORS.
     "ALLOWED_ORIGINS": "https://mytravelpatches.com,http://localhost:5173"
-  }
+  },
+  // Cloudflare's own edge rate limiter, keyed per authenticated user in
+  // src/index.ts. Counting happens at the edge, so there is no counter, no KV
+  // namespace and no state in the Worker itself.
+  //
+  // This is deliberately not a WAF rate-limiting rule: those apply to a zone,
+  // and this Worker is served from workers.dev, which isn't one. Putting the
+  // Worker behind a custom domain on a Cloudflare zone would make WAF rules
+  // available, but the binding does the job without that.
+  //
+  // namespace_id is an arbitrary per-account identifier, not a secret and not
+  // something to create in the dashboard first. `period` accepts only 10 or 60.
+  // 15/minute sits well above real use — a patch upload or a scan costs one
+  // call each — while capping what a single account can spend of the
+  // Cloudflare Images quota.
+  "ratelimits": [
+    {
+      "name": "BG_REMOVAL_LIMIT",
+      "namespace_id": "1001",
+      "simple": { "limit": 15, "period": 60 }
+    }
+  ]
 }

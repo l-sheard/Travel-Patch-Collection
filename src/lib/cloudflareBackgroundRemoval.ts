@@ -38,6 +38,12 @@ export async function removeBackgroundViaCloudflare(storagePathOriginal: string)
     body: JSON.stringify({ imageUrl: signed.signedUrl }),
   })
 
+  // The Worker rate-limits per account (see worker/wrangler.jsonc). Worth its
+  // own message: the request is fine and retrying later will work, which
+  // "failed (429)" doesn't convey.
+  if (response.status === 429) {
+    throw new Error('Too many photos processed in the last minute. Wait a moment and try again.')
+  }
   if (!response.ok) {
     throw new Error(`Background removal failed (${response.status})`)
   }

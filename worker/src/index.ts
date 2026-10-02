@@ -2,6 +2,8 @@ export interface Env {
   SUPABASE_URL: string
   SUPABASE_ANON_KEY: string
   ALLOWED_ORIGINS: string
+  /** Cloudflare edge rate limiter — configured in wrangler.jsonc. */
+  BG_REMOVAL_LIMIT: RateLimit
 }
 
 function corsHeaders(origin: string | null, env: Env): HeadersInit {
@@ -14,12 +16,18 @@ function corsHeaders(origin: string | null, env: Env): HeadersInit {
   }
 }
 
-async function verifySupabaseUser(authHeader: string | null, env: Env): Promise<boolean> {
-  if (!authHeader?.startsWith('Bearer ')) return false
+// Returns the caller's Supabase user id, or null if the token isn't valid.
+// The id (rather than just a yes/no) is what lets the rate limit below be
+// per-account: keying on IP would lump everyone behind a carrier NAT together
+// and still let one person rotate addresses.
+async function authenticateUser(authHeader: string | null, env: Env): Promise<string | null> {
+  if (!authHeader?.startsWith('Bearer ')) return null
   const res = await fetch(`${env.SUPABASE_URL}/auth/v1/user`, {
     headers: { Authorization: authHeader, apikey: env.SUPABASE_ANON_KEY },
   })
-  return res.ok
+  if (!res.ok) return null
+  const user = await res.json<{ id?: string }>()
+  return user.id ?? null
 }
 
 export default {
@@ -35,9 +43,21 @@ export default {
       return new Response('Method not allowed', { status: 405, headers: cors })
     }
 
-    const authed = await verifySupabaseUser(request.headers.get('Authorization'), env)
-    if (!authed) {
+    const userId = await authenticateUser(request.headers.get('Authorization'), env)
+    if (!userId) {
       return new Response('Unauthorized', { status: 401, headers: cors })
+    }
+
+    // Rate limited per account, and only after authenticating: the quota worth
+    // protecting is Cloudflare Images, which nothing below can reach without a
+    // valid session, and checking afterwards means an unauthenticated flood
+    // can't burn a real user's allowance by guessing their id.
+    const { success } = await env.BG_REMOVAL_LIMIT.limit({ key: userId })
+    if (!success) {
+      return new Response('Too many background removal requests. Try again in a minute.', {
+        status: 429,
+        headers: { ...cors, 'Retry-After': '60' },
+      })
     }
 
     let imageUrl: string | undefined
