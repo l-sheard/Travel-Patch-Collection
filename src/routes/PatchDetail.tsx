@@ -12,6 +12,7 @@ import { useDeletePatchDish, usePatchDishes } from '../hooks/usePatchDishes'
 import { usePhotoUrl } from '../hooks/usePhotoUrl'
 import { useTrip } from '../hooks/useTrips'
 import { reprocessGalleryImage } from '../lib/galleryProcessing'
+import { safeExternalUrl } from '../lib/externalUrl'
 import StarRating from '../components/StarRating'
 import type { PatchDish, PatchPhoto } from '../types/patch'
 
@@ -307,36 +308,41 @@ export default function PatchDetail() {
           <div className="mb-5">
             <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-ink/40">Where we stayed</p>
             <div className="flex flex-col gap-2">
-              {patch.accommodations.map((acc, i) => (
-                <div key={i} className="rounded-xl border border-ink/10 bg-white/60 p-3">
-                  <div className="flex items-center justify-between gap-2">
-                    {acc.url ? (
-                      <a
-                        href={acc.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm font-medium text-teal hover:underline"
-                      >
-                        {acc.name}
-                      </a>
-                    ) : (
-                      <p className="text-sm font-medium text-ink/80">{acc.name}</p>
+              {patch.accommodations.map((acc, i) => {
+                // Falls back to the same plain text as an entry with no link
+                // when the stored URL isn't a safe http(s) one.
+                const url = safeExternalUrl(acc.url)
+                return (
+                  <div key={i} className="rounded-xl border border-ink/10 bg-white/60 p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      {url ? (
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm font-medium text-teal hover:underline"
+                        >
+                          {acc.name}
+                        </a>
+                      ) : (
+                        <p className="text-sm font-medium text-ink/80">{acc.name}</p>
+                      )}
+                      {acc.rating != null && <StarRating value={acc.rating} readOnly size="text-sm" />}
+                    </div>
+                    {(acc.nights != null || acc.people != null) && (
+                      <p className="mt-0.5 text-xs text-ink/50">
+                        {[
+                          acc.nights != null ? `${acc.nights} night${acc.nights === 1 ? '' : 's'}` : null,
+                          acc.people != null ? `${acc.people} ${acc.people === 1 ? 'person' : 'people'}` : null,
+                        ]
+                          .filter(Boolean)
+                          .join(' · ')}
+                      </p>
                     )}
-                    {acc.rating != null && <StarRating value={acc.rating} readOnly size="text-sm" />}
+                    {acc.notes && <p className="mt-1 whitespace-pre-wrap text-xs text-ink/60">{acc.notes}</p>}
                   </div>
-                  {(acc.nights != null || acc.people != null) && (
-                    <p className="mt-0.5 text-xs text-ink/50">
-                      {[
-                        acc.nights != null ? `${acc.nights} night${acc.nights === 1 ? '' : 's'}` : null,
-                        acc.people != null ? `${acc.people} ${acc.people === 1 ? 'person' : 'people'}` : null,
-                      ]
-                        .filter(Boolean)
-                        .join(' · ')}
-                    </p>
-                  )}
-                  {acc.notes && <p className="mt-1 whitespace-pre-wrap text-xs text-ink/60">{acc.notes}</p>}
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
         )}
@@ -345,17 +351,20 @@ export default function PatchDetail() {
           <div className="mb-5">
             <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-ink/40">Good restaurants</p>
             <ul className="flex flex-col gap-1">
-              {patch.restaurants.map((r, i) => (
-                <li key={i} className="text-sm text-ink/80">
-                  {r.url ? (
-                    <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-teal hover:underline">
-                      {r.name}
-                    </a>
-                  ) : (
-                    r.name
-                  )}
-                </li>
-              ))}
+              {patch.restaurants.map((r, i) => {
+                const url = safeExternalUrl(r.url)
+                return (
+                  <li key={i} className="text-sm text-ink/80">
+                    {url ? (
+                      <a href={url} target="_blank" rel="noopener noreferrer" className="text-teal hover:underline">
+                        {r.name}
+                      </a>
+                    ) : (
+                      r.name
+                    )}
+                  </li>
+                )
+              })}
             </ul>
           </div>
         )}
