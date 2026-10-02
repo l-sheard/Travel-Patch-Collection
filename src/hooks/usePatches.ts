@@ -72,7 +72,7 @@ export function useCreatePatchWithCover() {
 
       return { patch, photoId, storagePathOriginal }
     },
-    onSuccess: ({ patch, photoId, storagePathOriginal }, { coverFile }) => {
+    onSuccess: ({ patch, photoId, storagePathOriginal }) => {
       queryClient.invalidateQueries({ queryKey: PATCHES_KEY })
 
       if (!user) return
@@ -81,7 +81,6 @@ export function useCreatePatchWithCover() {
         patchId: patch.id,
         userId: user.id,
         storagePathOriginal,
-        originalFile: coverFile,
         queryClient,
       })
     },

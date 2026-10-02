@@ -119,13 +119,7 @@ vi.mock('../lib/galleryProcessing', () => ({
   processGalleryImage: vi.fn(),
   reprocessGalleryImage: vi.fn(),
 }))
-// Rendering the Add patch form would otherwise pull in the ONNX background
-// removal model and hit the geocoding API.
-vi.mock('../lib/backgroundRemoval', () => ({
-  preloadBackgroundRemovalModel: vi.fn(),
-  removePatchBackground: vi.fn(),
-  cropAndSquareToContent: vi.fn(),
-}))
+// Rendering the Add patch form would otherwise hit the geocoding API.
 vi.mock('../lib/geocode', () => ({ searchLocations: vi.fn().mockResolvedValue([]) }))
 
 const { useDeletePatchPhoto, useReplacePatchCover, useUploadTripPhoto } = await import('./usePatchPhotos')

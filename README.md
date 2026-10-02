@@ -23,7 +23,6 @@ An installable web app for cataloguing a physical travel patch collection. Scan 
 - **Supabase** — PostgreSQL database, authentication, storage, row-level security, and account deletion Edge Function
 - **TensorFlow.js & MobileNet** — on-device image embeddings for patch matching
 - **Cloudflare Workers & Cloudflare Images** — server-side patch background removal
-- **IMG.LY Background Removal** — on-device fallback for background removal
 - **Leaflet & OpenStreetMap** — interactive mapping
 - **Cloudflare Turnstile** — CAPTCHA protection for authentication
 - **Vite PWA** — PWA installation

@@ -58,7 +58,7 @@ export function useReplacePatchCover() {
 
       return { photoId, storagePathOriginal: path }
     },
-    onSuccess: ({ photoId, storagePathOriginal }, { patchId, file }) => {
+    onSuccess: ({ photoId, storagePathOriginal }, { patchId }) => {
       queryClient.invalidateQueries({ queryKey: ['patch-photos', patchId] })
       queryClient.invalidateQueries({ queryKey: ['patches'] })
 
@@ -68,7 +68,6 @@ export function useReplacePatchCover() {
         patchId,
         userId: user.id,
         storagePathOriginal,
-        originalFile: file,
         queryClient,
       })
     },

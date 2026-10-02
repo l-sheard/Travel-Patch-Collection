@@ -5,8 +5,7 @@ import LoadingStamp from '../components/LoadingStamp'
 import PatchCard from '../components/PatchCard'
 import { useAuth } from '../context/AuthProvider'
 import { usePatches } from '../hooks/usePatches'
-import { preloadBackgroundRemovalModel, removePatchBackground } from '../lib/backgroundRemoval'
-import { isCloudflareBackgroundRemovalEnabled, removeBackgroundViaCloudflareForFile } from '../lib/cloudflareBackgroundRemoval'
+import { removeBackgroundViaCloudflareForFile } from '../lib/cloudflareBackgroundRemoval'
 import {
   analyzePatchPhoto,
   cosineSimilarity,
@@ -32,26 +31,16 @@ export default function Scan() {
   const [preview, setPreview] = useState<string | null>(null)
   const analyzing = stage !== 'idle'
 
-  // Start warming both models as soon as this page opens, so they're
-  // likely already loaded by the time the user's actually picked a photo.
-  // Skip the background-removal preload when Cloudflare's configured — it's
-  // the primary path there, the on-device model is only a fallback.
+  // Start warming the match model as soon as this page opens, so it's likely
+  // already loaded by the time the user's actually picked a photo. Background
+  // removal runs server-side, so there's nothing to warm up for it.
   useEffect(() => {
     preloadImageMatchModel()
-    if (!isCloudflareBackgroundRemovalEnabled) {
-      preloadBackgroundRemovalModel()
-    }
   }, [])
 
   async function isolatePatch(file: File): Promise<Blob> {
-    if (isCloudflareBackgroundRemovalEnabled && user) {
-      try {
-        return await removeBackgroundViaCloudflareForFile(file, user.id)
-      } catch (err) {
-        console.error('Cloudflare background removal failed for scan, falling back to on-device', err)
-      }
-    }
-    return removePatchBackground(file)
+    if (!user) throw new Error('Not signed in')
+    return removeBackgroundViaCloudflareForFile(file, user.id)
   }
 
   async function handleFile(e: ChangeEvent<HTMLInputElement>) {
