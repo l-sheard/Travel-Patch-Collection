@@ -17,9 +17,18 @@ vi.mock('../hooks/usePhotoUrl', () => ({
     return { data: path ? `https://signed/${path}` : undefined }
   },
 }))
+// Leaflet needs a real DOM map; only the popup's contents matter here.
+vi.mock('react-leaflet', () => ({
+  MapContainer: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  Marker: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  Popup: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  TileLayer: () => null,
+}))
+vi.mock('leaflet', () => ({ default: { divIcon: () => ({}) } }))
 
 const PatchCard = (await import('./PatchCard')).default
 const TripCard = (await import('./TripCard')).default
+const PatchMap = (await import('./PatchMap')).default
 
 function wrapper({ children }: { children: ReactNode }) {
   return <MemoryRouter>{children}</MemoryRouter>
@@ -139,5 +148,26 @@ describe('TripCard image selection', () => {
     const img = screen.getByAltText('Italy 2026')
     expect(img.getAttribute('loading')).toBe('lazy')
     expect(img.getAttribute('decoding')).toBe('async')
+  })
+})
+
+describe('map popup image selection', () => {
+  const pinned = (photos: PatchPhoto[]) => [{ ...patch(photos), lat: 41.9, lng: 12.5 }]
+
+  it('prefers the thumbnail', () => {
+    render(<PatchMap patches={pinned([photo()])} />, { wrapper })
+    expect(asked()).toEqual({ bucket: 'patch-gallery', path: 'user-1/patch-1/photo-1-thumb.webp' })
+  })
+
+  it('falls back to the gallery image', () => {
+    render(<PatchMap patches={pinned([photo({ storage_path_thumb: null })])} />, { wrapper })
+    expect(asked()).toEqual({ bucket: 'patch-gallery', path: 'user-1/patch-1/photo-1-gallery.png' })
+  })
+
+  it('falls back to the original when nothing has been processed yet', () => {
+    render(<PatchMap patches={pinned([photo({ storage_path_thumb: null, storage_path_gallery: null })])} />, {
+      wrapper,
+    })
+    expect(asked()).toEqual({ bucket: 'patch-originals', path: 'user-1/patch-1/photo-1.jpg' })
   })
 })

@@ -29,15 +29,18 @@ const patchIcon = L.divIcon({
 
 function PatchPopupContent({ patch }: { patch: MappablePatch }) {
   const cover = patch.patch_photos?.find((p) => p.is_cover) ?? patch.patch_photos?.[0]
-  const bucket = cover?.storage_path_gallery ? 'patch-gallery' : 'patch-originals'
-  const path = cover?.storage_path_gallery ?? cover?.storage_path_original
+  // Popups render at ~124 CSS px, so take the thumbnail when there is one and
+  // fall back for photos processed before thumbnails existed.
+  const processed = cover?.storage_path_thumb ?? cover?.storage_path_gallery
+  const bucket = processed ? 'patch-gallery' : 'patch-originals'
+  const path = processed ?? cover?.storage_path_original
   const { data: url } = usePhotoUrl(bucket, path)
 
   return (
     <Link to={`/patches/${patch.id}`} className="block w-32">
       <div className="mb-1.5 flex aspect-square items-center justify-center rounded-lg bg-cream-dark/60 p-0.5">
         {url ? (
-          <img src={url} alt="" className="h-full w-full object-contain" />
+          <img src={url} alt="" decoding="async" className="h-full w-full object-contain" />
         ) : (
           <div className="h-full w-full animate-pulse rounded bg-ink/5" />
         )}
