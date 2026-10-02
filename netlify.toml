@@ -9,3 +9,40 @@
   from = "/*"
   to = "/index.html"
   status = 200
+
+# Security response headers.
+#
+# The CSP is derived from the origins the built bundle actually contacts, not
+# from a template. Every entry below is load-bearing; if you add a service,
+# add it here or it will fail silently with only a console violation.
+#
+# Deliberately absent:
+#   * 'unsafe-eval' / 'wasm-unsafe-eval' — the bundle contains no eval() or
+#     new Function(). long.js (pulled in by TensorFlow.js) probes for
+#     WebAssembly inside a try/catch on the first scan; CSP blocks the probe,
+#     it falls back to its JS path, and scanning works. That logs one benign
+#     console violation. Add 'wasm-unsafe-eval' to script-src if you'd rather
+#     have a quiet console than the tighter policy.
+#   * Sentry — @sentry/react only loads when VITE_SENTRY_DSN is set, and it
+#     isn't. When you enable it, add its ingest host to connect-src.
+#   * camera=() in Permissions-Policy — photo capture uses
+#     <input type="file" capture="environment">, and restricting camera risks
+#     breaking that on mobile for no gain (it isn't getUserMedia).
+#
+# NOTE: the Worker origin in connect-src is also configured as
+# VITE_BG_REMOVAL_WORKER_URL. If you redeploy the Worker somewhere else, both
+# have to change or background removal breaks.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    # Stop the browser second-guessing declared Content-Types.
+    X-Content-Type-Options = "nosniff"
+    # Send only the origin cross-origin, so patch UUIDs in the path aren't
+    # leaked to OpenStreetMap/Google Fonts in the Referer header.
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    # Clickjacking: frame-ancestors is the directive browsers honour now,
+    # X-Frame-Options covers anything that doesn't read CSP.
+    X-Frame-Options = "DENY"
+    Permissions-Policy = "geolocation=(), microphone=(), payment=()"
+    Strict-Transport-Security = "max-age=31536000"
+    Content-Security-Policy = "default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://ilymsmgssrkrnrkobayu.supabase.co https://*.tile.openstreetmap.org; connect-src 'self' https://ilymsmgssrkrnrkobayu.supabase.co https://travel-patches-bg-removal.lara-sheard9.workers.dev https://nominatim.openstreetmap.org https://tfhub.dev https://www.kaggle.com https://storage.googleapis.com; frame-src https://challenges.cloudflare.com; worker-src 'self'; manifest-src 'self'; upgrade-insecure-requests"
