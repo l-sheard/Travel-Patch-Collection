@@ -130,6 +130,9 @@ export function useDeletePatchPhoto() {
       if (photo.storage_path_gallery) {
         targets.push({ bucket: 'patch-gallery', path: photo.storage_path_gallery })
       }
+      if (photo.storage_path_thumb) {
+        targets.push({ bucket: 'patch-gallery', path: photo.storage_path_thumb })
+      }
 
       // Row first: Postgres decides whether the photo still exists. If this
       // fails, the files are still there and still referenced.

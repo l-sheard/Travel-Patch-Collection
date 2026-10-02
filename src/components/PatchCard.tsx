@@ -10,8 +10,11 @@ type Props = {
 
 export default function PatchCard({ patch }: Props) {
   const cover = patch.patch_photos.find((p) => p.is_cover) ?? patch.patch_photos[0]
-  const bucket = cover?.storage_path_gallery ? 'patch-gallery' : 'patch-originals'
-  const path = cover?.storage_path_gallery ?? cover?.storage_path_original
+  // Thumbnail first — it's a fraction of the size and these render small.
+  // Photos processed before thumbnails existed fall back to the gallery image.
+  const processed = cover?.storage_path_thumb ?? cover?.storage_path_gallery
+  const bucket = processed ? 'patch-gallery' : 'patch-originals'
+  const path = processed ?? cover?.storage_path_original
   const { data: url } = usePhotoUrl(bucket, path)
   const isProcessing = cover?.gallery_status === 'pending' || cover?.gallery_status === 'processing'
 
@@ -24,7 +27,12 @@ export default function PatchCard({ patch }: Props) {
         {cover && !url ? (
           <div className="h-full w-full animate-pulse rounded-xl bg-ink/5" />
         ) : url ? (
-          <img src={url} alt={patch.location_name} className="h-full w-full object-contain drop-shadow" />
+          <img
+            src={url}
+            alt={patch.location_name}
+            decoding="async"
+            className="h-full w-full object-contain drop-shadow"
+          />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-xs text-ink/30">No photo</div>
         )}

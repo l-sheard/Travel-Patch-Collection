@@ -25,6 +25,14 @@ export function galleryPhotoPath(userId: string, patchId: string, photoId: strin
   return `${userId}/${patchId}/${photoId}-gallery.png`
 }
 
+/** Small square version of the gallery image, for dashboard cards. Lives in
+ * the same bucket and prefix as the gallery image so it is covered by the same
+ * storage policies and the same cleanup paths. The extension comes from what
+ * the browser actually encoded, not from what was requested. */
+export function thumbPhotoPath(userId: string, patchId: string, photoId: string, ext: string): string {
+  return `${userId}/${patchId}/${photoId}-thumb.${ext}`
+}
+
 export function dishPhotoPath(userId: string, patchId: string, dishId: string, ext: string): string {
   return `${userId}/${patchId}/${dishId}.${ext}`
 }

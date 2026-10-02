@@ -79,6 +79,7 @@ function CoverPhoto({ photo, patchId }: { photo: PatchPhoto; patchId: string }) 
       userId: user.id,
       storagePathOriginal: photo.storage_path_original,
       previousGalleryPath: photo.storage_path_gallery,
+      previousThumbPath: photo.storage_path_thumb,
       queryClient,
     })
   }

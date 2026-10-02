@@ -149,6 +149,7 @@ function photo(overrides: Partial<PatchPhoto> = {}): PatchPhoto {
     role: 'original',
     storage_path_original: `${USER_ID}/${PATCH_ID}/trip.jpg`,
     storage_path_gallery: null,
+    storage_path_thumb: null,
     gallery_status: 'done',
     embedding: null,
     phash: null,
@@ -376,6 +377,31 @@ describe('deleting a photo', () => {
       { bucket: 'patch-originals', paths: [`${USER_ID}/${PATCH_ID}/trip.jpg`] },
       { bucket: 'patch-gallery', paths: [`${USER_ID}/${PATCH_ID}/trip-gallery.png`] },
     ])
+  })
+
+  it('removes the thumbnail alongside the original and gallery image', async () => {
+    const del = renderMutation(useDeletePatchPhoto)
+    await del.mutateAsync(
+      photo({
+        storage_path_gallery: `${USER_ID}/${PATCH_ID}/trip-gallery.png`,
+        storage_path_thumb: `${USER_ID}/${PATCH_ID}/trip-thumb.webp`,
+      }),
+    )
+
+    expect(h.removeCalls).toEqual([
+      { bucket: 'patch-originals', paths: [`${USER_ID}/${PATCH_ID}/trip.jpg`] },
+      {
+        bucket: 'patch-gallery',
+        paths: [`${USER_ID}/${PATCH_ID}/trip-gallery.png`, `${USER_ID}/${PATCH_ID}/trip-thumb.webp`],
+      },
+    ])
+  })
+
+  it('skips the thumbnail for photos that never had one', async () => {
+    const del = renderMutation(useDeletePatchPhoto)
+    await del.mutateAsync(photo({ storage_path_gallery: null, storage_path_thumb: null }))
+
+    expect(h.removeCalls).toEqual([{ bucket: 'patch-originals', paths: [`${USER_ID}/${PATCH_ID}/trip.jpg`] }])
   })
 
   it('leaves the files in place when the row delete fails', async () => {

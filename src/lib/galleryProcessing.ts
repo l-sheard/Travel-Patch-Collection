@@ -2,8 +2,9 @@ import type { QueryClient } from '@tanstack/react-query'
 import { supabase } from './supabaseClient'
 import { removeBackgroundViaCloudflare } from './cloudflareBackgroundRemoval'
 import { analyzePatchPhoto } from './imageMatch'
-import { galleryPhotoPath } from './storagePaths'
-import { removeStorageObjects } from './storageLifecycle'
+import { galleryPhotoPath, thumbPhotoPath } from './storagePaths'
+import { removeStorageObjects, type StorageTarget } from './storageLifecycle'
+import { imageExtensionFor, makeThumbnail } from './imageProcessing'
 
 type RunArgs = {
   photoId: string
@@ -12,6 +13,8 @@ type RunArgs = {
   storagePathOriginal: string
   /** The gallery object this photo's row already points at, if any. */
   previousGalleryPath: string | null
+  /** The thumbnail object this photo's row already points at, if any. */
+  previousThumbPath: string | null
   queryClient: QueryClient
 }
 
@@ -26,6 +29,7 @@ async function runGalleryRemoval({
   userId,
   storagePathOriginal,
   previousGalleryPath,
+  previousThumbPath,
   queryClient,
 }: RunArgs) {
   try {
@@ -46,6 +50,26 @@ async function runGalleryRemoval({
     // pre-existing one would leave the row pointing at nothing.
     const isNewObject = galleryPath !== previousGalleryPath
 
+    // Small square version for the dashboard cards. A failure here must not
+    // fail the gallery image, so the row keeps whatever thumbnail it already
+    // had (usually none) and the dashboard falls back to the gallery image.
+    // The extension follows what the browser actually encoded, since canvas
+    // quietly produces PNG where it can't encode WebP.
+    let thumbPath = previousThumbPath
+    try {
+      const thumbBlob = await makeThumbnail(resultBlob)
+      const candidate = thumbPhotoPath(userId, patchId, photoId, imageExtensionFor(thumbBlob))
+      const { error: thumbError } = await supabase.storage
+        .from('patch-gallery')
+        .upload(candidate, thumbBlob, { contentType: thumbBlob.type, upsert: true })
+      if (thumbError) throw thumbError
+      thumbPath = candidate
+    } catch (err) {
+      console.error('Thumbnail generation failed for photo', photoId, err)
+    }
+
+    const isNewThumb = thumbPath !== null && thumbPath !== previousThumbPath
+
     // Compute the scan-match signature from this same cropped, background-free
     // image (not the raw upload) so matching compares just the patch, not
     // whatever surface/hand/lighting it happened to be photographed against.
@@ -61,11 +85,20 @@ async function runGalleryRemoval({
 
     const { data: updated, error: updateError } = await supabase
       .from('patch_photos')
-      .update({ storage_path_gallery: galleryPath, gallery_status: 'done', embedding, phash })
+      .update({
+        storage_path_gallery: galleryPath,
+        storage_path_thumb: thumbPath,
+        gallery_status: 'done',
+        embedding,
+        phash,
+      })
       .eq('id', photoId)
       .select('id')
     if (updateError) {
-      if (isNewObject) await removeStorageObjects([{ bucket: 'patch-gallery', path: galleryPath }])
+      const orphans: StorageTarget[] = []
+      if (isNewObject) orphans.push({ bucket: 'patch-gallery', path: galleryPath })
+      if (isNewThumb) orphans.push({ bucket: 'patch-gallery', path: thumbPath! })
+      await removeStorageObjects(orphans)
       throw updateError
     }
 
@@ -73,7 +106,17 @@ async function runGalleryRemoval({
     // running, so nothing references what we just uploaded, whether or not this
     // run introduced it.
     if (updated?.length === 0) {
-      await removeStorageObjects([{ bucket: 'patch-gallery', path: galleryPath }])
+      const orphans: StorageTarget[] = [{ bucket: 'patch-gallery', path: galleryPath }]
+      if (thumbPath) orphans.push({ bucket: 'patch-gallery', path: thumbPath })
+      await removeStorageObjects(orphans)
+      return
+    }
+
+    // The thumbnail extension depends on what the browser could encode, so a
+    // reprocess on a different browser can land on a different path. The row
+    // now points at the new one, leaving the old object unreferenced.
+    if (isNewThumb && previousThumbPath) {
+      await removeStorageObjects([{ bucket: 'patch-gallery', path: previousThumbPath }])
     }
   } catch (err) {
     console.error('Background removal failed for photo', photoId, err)
@@ -91,7 +134,7 @@ export function processGalleryImage(args: {
   storagePathOriginal: string
   queryClient: QueryClient
 }) {
-  return runGalleryRemoval({ ...args, previousGalleryPath: null })
+  return runGalleryRemoval({ ...args, previousGalleryPath: null, previousThumbPath: null })
 }
 
 /** Re-runs background removal against the already-uploaded original. */

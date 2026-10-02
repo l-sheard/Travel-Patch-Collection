@@ -10,8 +10,13 @@ type Props = {
 export default function TripCard({ trip }: Props) {
   const firstPatch = trip.patches[0]
   const cover = firstPatch?.patch_photos.find((p) => p.is_cover) ?? firstPatch?.patch_photos[0]
-  const bucket = cover?.storage_path_gallery ? 'patch-gallery' : 'patch-originals'
-  const path = cover?.storage_path_gallery ?? cover?.storage_path_original
+  // Thumbnail first, falling back to the gallery image for photos processed
+  // before thumbnails existed. Trip cards sit below the patch grid on the
+  // dashboard, so the image below is lazy-loaded to leave bandwidth for the
+  // above-the-fold patch thumbnails.
+  const processed = cover?.storage_path_thumb ?? cover?.storage_path_gallery
+  const bucket = processed ? 'patch-gallery' : 'patch-originals'
+  const path = processed ?? cover?.storage_path_original
   const { data: url } = usePhotoUrl(bucket, path)
 
   return (
@@ -23,7 +28,13 @@ export default function TripCard({ trip }: Props) {
         {cover && !url ? (
           <div className="h-full w-full animate-pulse rounded-xl bg-ink/5" />
         ) : url ? (
-          <img src={url} alt={trip.name} className="h-full w-full object-contain drop-shadow" />
+          <img
+            src={url}
+            alt={trip.name}
+            loading="lazy"
+            decoding="async"
+            className="h-full w-full object-contain drop-shadow"
+          />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-xs text-ink/30">No photo</div>
         )}

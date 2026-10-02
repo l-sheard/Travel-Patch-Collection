@@ -69,6 +69,11 @@ export function usePhotoUrl(bucket: StorageBucket, path: string | null | undefin
     queryKey: ['photo-url', bucket, path],
     queryFn: () => batchedCreateSignedUrl(bucket, path as string),
     enabled: !!path,
+    // Signed URLs carry a token that changes every time one is minted, so a new
+    // URL is a guaranteed browser-cache miss. Keeping the cached URL alive for
+    // as long as it's considered fresh means navigating back to a page reuses
+    // the same URL, and the image comes from the browser cache instead.
     staleTime: 45 * 60 * 1000,
+    gcTime: 45 * 60 * 1000,
   })
 }

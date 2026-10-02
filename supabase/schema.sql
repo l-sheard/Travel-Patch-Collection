@@ -153,6 +153,12 @@ create table if not exists patch_photos (
   created_at timestamptz not null default now()
 );
 
+-- Small square version of the gallery image, used by the dashboard cards so
+-- they don't download the full-size sticker. Nullable: photos processed before
+-- this existed, or whose thumbnail failed to generate, simply fall back to the
+-- gallery image.
+alter table patch_photos add column if not exists storage_path_thumb text;
+
 create index if not exists patch_photos_patch_id_idx on patch_photos (patch_id);
 
 alter table patch_photos enable row level security;
@@ -213,121 +219,6 @@ create policy "patch_dishes_update_own" on patch_dishes
 drop policy if exists "patch_dishes_delete_own" on patch_dishes;
 create policy "patch_dishes_delete_own" on patch_dishes
   for delete using (auth.uid() = user_id);
-
--- ---------------------------------------------------------------------------
--- Storage/database consistency
---
--- Postgres is the source of truth: a storage object counts as part of the app
--- only while a row references it. Storage can't join a Postgres transaction,
--- so the application orders its calls around that (upload before insert,
--- delete rows before deleting objects — see src/lib/storageLifecycle.ts).
--- These two functions cover the only places where several *row* writes have
--- to land together, which is what a transaction is actually for.
--- ---------------------------------------------------------------------------
-
--- A patch has at most one cover photo. The cover is what the gallery tile,
--- the patch page and scan matching all read, so two covers is ambiguous and
--- zero covers makes the patch disappear from the gallery/scan index.
--- Demote older duplicates first so this is safe to apply to existing data.
-update patch_photos p
-set is_cover = false
-where p.is_cover
-  and exists (
-    select 1
-    from patch_photos q
-    where q.patch_id = p.patch_id
-      and q.is_cover
-      and (q.created_at, q.id) > (p.created_at, p.id)
-  );
-
-create unique index if not exists patch_photos_one_cover_per_patch
-  on patch_photos (patch_id)
-  where is_cover;
-
--- Inserts a photo row and, when that photo becomes the cover, demotes the
--- previous cover in the same transaction.
---
--- Invariant protected: a patch never ends up with zero covers (or, given the
--- unique index above, two). Done as two separate client statements, a failure
--- between them leaves the patch with no cover at all.
---
--- security invoker (the default) is deliberate: RLS still applies, so a caller
--- can only write rows for their own patches, and user_id comes from auth.uid()
--- rather than from the client. The upsert makes a retry with the same photo id
--- land on the same row instead of raising a duplicate-key error.
-create or replace function insert_patch_photo(
-  p_photo_id uuid,
-  p_patch_id uuid,
-  p_storage_path_original text,
-  p_is_cover boolean default false
-)
-returns setof patch_photos
-language plpgsql
-security invoker
-set search_path = public
-as $$
-declare
-  v_row patch_photos;
-begin
-  if p_is_cover then
-    update patch_photos
-    set is_cover = false
-    where patch_id = p_patch_id
-      and is_cover
-      and id <> p_photo_id;
-  end if;
-
-  insert into patch_photos (id, patch_id, user_id, role, storage_path_original, is_cover)
-  values (p_photo_id, p_patch_id, auth.uid(), 'original', p_storage_path_original, p_is_cover)
-  on conflict (id) do update
-    set storage_path_original = excluded.storage_path_original,
-        is_cover = excluded.is_cover
-  returning * into v_row;
-
-  return next v_row;
-end;
-$$;
-
--- Deletes a patch and returns every storage object its rows referenced,
--- captured inside the same transaction as the delete. Child rows go away via
--- the existing on-delete-cascade foreign keys; the application deletes the
--- returned objects afterwards (best-effort, retryable).
---
--- Invariant protected: the cleanup list matches exactly what the delete
--- removed. Reading the paths and deleting the patch as two client statements
--- leaves a window where a concurrent upload adds a photo that gets cascaded
--- away without its object ever appearing in the cleanup list.
---
--- Returns no rows (and deletes nothing) when the patch doesn't exist or isn't
--- visible to the caller under RLS, which makes a retry a safe no-op.
-create or replace function delete_patch_returning_storage_paths(p_patch_id uuid)
-returns table (bucket text, path text)
-language plpgsql
-security invoker
-set search_path = public
-as $$
-begin
-  return query
-  select 'patch-originals'::text, ph.storage_path_original
-  from patch_photos ph
-  where ph.patch_id = p_patch_id
-  union all
-  select 'patch-gallery'::text, ph.storage_path_gallery
-  from patch_photos ph
-  where ph.patch_id = p_patch_id
-    and ph.storage_path_gallery is not null
-  union all
-  select 'patch-dishes'::text, d.storage_path
-  from patch_dishes d
-  where d.patch_id = p_patch_id
-    and d.storage_path is not null;
-
-  delete from patches where id = p_patch_id;
-end;
-$$;
-
-grant execute on function insert_patch_photo(uuid, uuid, text, boolean) to authenticated;
-grant execute on function delete_patch_returning_storage_paths(uuid) to authenticated;
 
 -- ---------------------------------------------------------------------------
 -- Patch photo invariants
@@ -551,7 +442,14 @@ begin
   where ph.patch_id = p_patch_id
     and ph.is_cover
     and ph.id <> p_photo_id
-    and ph.storage_path_gallery is not null;
+    and ph.storage_path_gallery is not null
+  union all
+  select 'patch-gallery'::text, ph.storage_path_thumb
+  from patch_photos ph
+  where ph.patch_id = p_patch_id
+    and ph.is_cover
+    and ph.id <> p_photo_id
+    and ph.storage_path_thumb is not null;
 
   delete from patch_photos
   where patch_id = p_patch_id
@@ -594,6 +492,11 @@ begin
   from patch_photos ph
   where ph.patch_id = p_patch_id
     and ph.storage_path_gallery is not null
+  union all
+  select 'patch-gallery'::text, ph.storage_path_thumb
+  from patch_photos ph
+  where ph.patch_id = p_patch_id
+    and ph.storage_path_thumb is not null
   union all
   select 'patch-dishes'::text, d.storage_path
   from patch_dishes d
@@ -739,6 +642,8 @@ create policy "patch_dishes_photos_delete_own" on storage.objects
 --     select 'patch-originals' as bucket_id, storage_path_original as name from patch_photos
 --     union all
 --     select 'patch-gallery', storage_path_gallery from patch_photos where storage_path_gallery is not null
+--     union all
+--     select 'patch-gallery', storage_path_thumb from patch_photos where storage_path_thumb is not null
 --     union all
 --     select 'patch-dishes', storage_path from patch_dishes where storage_path is not null
 --   )

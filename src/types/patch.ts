@@ -60,6 +60,7 @@ export type PatchPhoto = {
   role: PhotoRole
   storage_path_original: string
   storage_path_gallery: string | null
+  storage_path_thumb: string | null
   gallery_status: GalleryStatus
   embedding: number[] | string | null
   phash: string | null
