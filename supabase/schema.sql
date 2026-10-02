@@ -76,13 +76,9 @@ drop policy if exists "patches_select_own" on patches;
 create policy "patches_select_own" on patches
   for select using (auth.uid() = user_id);
 
-drop policy if exists "patches_insert_own" on patches;
-create policy "patches_insert_own" on patches
-  for insert with check (auth.uid() = user_id);
-
-drop policy if exists "patches_update_own" on patches;
-create policy "patches_update_own" on patches
-  for update using (auth.uid() = user_id);
+-- The insert/update policies for patches are further down, immediately after
+-- the trip_id column is added: they also check that the referenced trip is
+-- yours, which can't be written here because trips doesn't exist yet.
 
 drop policy if exists "patches_delete_own" on patches;
 create policy "patches_delete_own" on patches
@@ -130,6 +126,37 @@ create policy "trips_delete_own" on trips
 alter table patches add column if not exists trip_id uuid references trips(id) on delete set null;
 create index if not exists patches_trip_id_idx on patches (trip_id);
 
+-- Owning the row isn't enough: the trip it points at has to be yours too.
+-- Foreign keys are validated by the system and so ignore RLS, which means
+-- `auth.uid() = user_id` alone would let a patch be filed under someone else's
+-- trip. create_patch_with_cover() already refuses that explicitly; these
+-- policies close the same hole for a plain insert or update.
+--
+-- The update policy has to restate `auth.uid() = user_id`: naming `with check`
+-- replaces the implicit copy of `using`, so leaving it out here would drop the
+-- protection against reassigning a row to another user.
+
+drop policy if exists "patches_insert_own" on patches;
+create policy "patches_insert_own" on patches
+  for insert with check (
+    auth.uid() = user_id
+    and (
+      trip_id is null
+      or exists (select 1 from trips t where t.id = trip_id and t.user_id = auth.uid())
+    )
+  );
+
+drop policy if exists "patches_update_own" on patches;
+create policy "patches_update_own" on patches
+  for update using (auth.uid() = user_id)
+  with check (
+    auth.uid() = user_id
+    and (
+      trip_id is null
+      or exists (select 1 from trips t where t.id = trip_id and t.user_id = auth.uid())
+    )
+  );
+
 -- ---------------------------------------------------------------------------
 -- patch_photos
 -- ---------------------------------------------------------------------------
@@ -167,13 +194,33 @@ drop policy if exists "patch_photos_select_own" on patch_photos;
 create policy "patch_photos_select_own" on patch_photos
   for select using (auth.uid() = user_id);
 
+-- Owning the row isn't enough: the patch it hangs off has to be yours too.
+-- Foreign keys are validated by the system and so ignore RLS, so without the
+-- exists() a row could be attached to another user's patch. That leaks
+-- nothing by itself — select is still scoped to your own rows — but an
+-- is_cover row planted on someone else's patch would collide with their cover
+-- in the (non-RLS-scoped) patch_photos_one_cover_per_patch unique index and
+-- permanently break replace_patch_cover() for them.
+--
+-- Update needs the same clause or the insert check is pointless: you could
+-- insert against your own patch and then repoint patch_id. And naming
+-- `with check` replaces the implicit copy of `using`, so it has to restate
+-- `auth.uid() = user_id` to keep blocking row handover to another user.
+
 drop policy if exists "patch_photos_insert_own" on patch_photos;
 create policy "patch_photos_insert_own" on patch_photos
-  for insert with check (auth.uid() = user_id);
+  for insert with check (
+    auth.uid() = user_id
+    and exists (select 1 from patches p where p.id = patch_id and p.user_id = auth.uid())
+  );
 
 drop policy if exists "patch_photos_update_own" on patch_photos;
 create policy "patch_photos_update_own" on patch_photos
-  for update using (auth.uid() = user_id);
+  for update using (auth.uid() = user_id)
+  with check (
+    auth.uid() = user_id
+    and exists (select 1 from patches p where p.id = patch_id and p.user_id = auth.uid())
+  );
 
 drop policy if exists "patch_photos_delete_own" on patch_photos;
 create policy "patch_photos_delete_own" on patch_photos
@@ -208,13 +255,22 @@ drop policy if exists "patch_dishes_select_own" on patch_dishes;
 create policy "patch_dishes_select_own" on patch_dishes
   for select using (auth.uid() = user_id);
 
+-- Same parent-ownership check as patch_photos above, for the same reason.
+
 drop policy if exists "patch_dishes_insert_own" on patch_dishes;
 create policy "patch_dishes_insert_own" on patch_dishes
-  for insert with check (auth.uid() = user_id);
+  for insert with check (
+    auth.uid() = user_id
+    and exists (select 1 from patches p where p.id = patch_id and p.user_id = auth.uid())
+  );
 
 drop policy if exists "patch_dishes_update_own" on patch_dishes;
 create policy "patch_dishes_update_own" on patch_dishes
-  for update using (auth.uid() = user_id);
+  for update using (auth.uid() = user_id)
+  with check (
+    auth.uid() = user_id
+    and exists (select 1 from patches p where p.id = patch_id and p.user_id = auth.uid())
+  );
 
 drop policy if exists "patch_dishes_delete_own" on patch_dishes;
 create policy "patch_dishes_delete_own" on patch_dishes
@@ -506,6 +562,32 @@ begin
   delete from patches where id = p_patch_id;
 end;
 $$;
+
+-- These were callable by the anon role, by two separate routes:
+--
+--   * Postgres grants EXECUTE to PUBLIC on every newly created function.
+--   * Supabase additionally ships `alter default privileges in schema public
+--     grant all on functions to anon, authenticated, service_role`, so a new
+--     function in this schema also gets a *direct* grant to anon. Revoking
+--     from PUBLIC does not remove that one — it has to be named.
+--
+-- Nothing could come of either: all three are security invoker, so RLS applies
+-- and auth.uid() is null for anon, which fails the not-null on user_id and
+-- makes every select and delete match no rows. But the grants should say
+-- what's intended rather than lean on that.
+--
+-- service_role keeps its grant. It bypasses RLS by design and is only ever
+-- used server-side with the service key, so revoking it would buy nothing.
+--
+-- Revoke first, then grant: revoking from PUBLIC also takes the implicit grant
+-- away from authenticated.
+--
+-- Idempotent: revoking a privilege that isn't held and granting one that is
+-- are both no-ops. create or replace function preserves grants, so re-running
+-- this file doesn't reintroduce either grant.
+revoke execute on function create_patch_with_cover(uuid, jsonb, uuid, text) from public, anon;
+revoke execute on function replace_patch_cover(uuid, uuid, text) from public, anon;
+revoke execute on function delete_patch_returning_storage_paths(uuid) from public, anon;
 
 grant execute on function create_patch_with_cover(uuid, jsonb, uuid, text) to authenticated;
 grant execute on function replace_patch_cover(uuid, uuid, text) to authenticated;
