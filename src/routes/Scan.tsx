@@ -31,18 +31,6 @@ const RAW_CONFIDENT_THRESHOLD = 0.65
 
 type Candidate = { patch: PatchWithPhotos; score: number }
 
-/** Temporary: here while the raw-pass thresholds above are being calibrated.
- * Remove once they're settled. */
-function logPass(pass: 'raw' | 'isolated', scored: Candidate[]) {
-  const [first, second] = scored
-  const ratio = first && second ? (first.score / second.score).toFixed(2) : 'n/a'
-  console.log(
-    `[scan:${pass}] top1=${first?.score.toFixed(4) ?? 'n/a'} (${first?.patch.location_name ?? '-'}) ` +
-      `top2=${second?.score.toFixed(4) ?? 'n/a'} ratio=${ratio}`,
-  )
-  console.table(scored.map((c) => ({ patch: c.patch.location_name, score: c.score.toFixed(4) })))
-}
-
 export default function Scan() {
   const navigate = useNavigate()
   const { user } = useAuth()
@@ -98,7 +86,6 @@ export default function Scan() {
       setStage('comparing')
       const raw = await analyzePatchPhoto(file)
       const rawScored = scoreAgainstCollection(raw.embedding, raw.phash)
-      logPass('raw', rawScored)
 
       if (rawScored[0] && rawScored[0].score >= RAW_CONFIDENT_THRESHOLD) {
         setCandidates(rawScored.slice(0, 3))
@@ -114,7 +101,6 @@ export default function Scan() {
       setStage('comparing')
       const { embedding: scanEmbedding, phash: scanPhash } = await analyzePatchPhoto(isolated)
       const scored = scoreAgainstCollection(scanEmbedding, scanPhash)
-      logPass('isolated', scored)
 
       const top = scored.slice(0, 3)
       setCandidates(top)
