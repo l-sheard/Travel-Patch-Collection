@@ -15,11 +15,33 @@ import {
 } from '../lib/imageMatch'
 import type { PatchWithPhotos } from '../types/patch'
 
-const CONFIDENT_THRESHOLD = 0.85
+const CONFIDENT_THRESHOLD = 0.75
 const PHASH_BONUS_DISTANCE = 6
 const PHASH_BONUS = 0.03
 
+// Scanning tries the raw camera photo first, because that skips the upload +
+// Worker + Cloudflare round trip that isolating the patch requires. Stored
+// embeddings come from background-removed images, so raw scores sit lower —
+// hence its own, lower threshold. Isolation still runs whenever the raw pass
+// doesn't clear it.
+//
+// PROVISIONAL: calibrate against more patches, more backgrounds, and at least
+// one patch that isn't in the collection (the false-positive case).
+const RAW_CONFIDENT_THRESHOLD = 0.65
+
 type Candidate = { patch: PatchWithPhotos; score: number }
+
+/** Temporary: here while the raw-pass thresholds above are being calibrated.
+ * Remove once they're settled. */
+function logPass(pass: 'raw' | 'isolated', scored: Candidate[]) {
+  const [first, second] = scored
+  const ratio = first && second ? (first.score / second.score).toFixed(2) : 'n/a'
+  console.log(
+    `[scan:${pass}] top1=${first?.score.toFixed(4) ?? 'n/a'} (${first?.patch.location_name ?? '-'}) ` +
+      `top2=${second?.score.toFixed(4) ?? 'n/a'} ratio=${ratio}`,
+  )
+  console.table(scored.map((c) => ({ patch: c.patch.location_name, score: c.score.toFixed(4) })))
+}
 
 export default function Scan() {
   const navigate = useNavigate()
@@ -53,15 +75,7 @@ export default function Scan() {
     setPreview(URL.createObjectURL(file))
     preloadImageMatchModel()
 
-    try {
-      // Isolate the patch the same way stored reference photos are isolated
-      // (background/hand/lighting removed) so the comparison is apples-to-apples.
-      setStage('isolating')
-      const isolated = await isolatePatch(file)
-
-      setStage('comparing')
-      const { embedding: scanEmbedding, phash: scanPhash } = await analyzePatchPhoto(isolated)
-
+    function scoreAgainstCollection(scanEmbedding: number[], scanPhash: bigint): Candidate[] {
       const scored: Candidate[] = (patches ?? []).flatMap((patch) => {
         const cover = patch.patch_photos.find((p) => p.is_cover)
         const embedding = parseEmbedding(cover?.embedding)
@@ -74,8 +88,34 @@ export default function Scan() {
         }
         return [{ patch, score }]
       })
-
       scored.sort((a, b) => b.score - a.score)
+      return scored
+    }
+
+    try {
+      // Fast path: the unmodified camera photo, scored locally. No upload, no
+      // Worker, no network beyond what's already loaded.
+      setStage('comparing')
+      const raw = await analyzePatchPhoto(file)
+      const rawScored = scoreAgainstCollection(raw.embedding, raw.phash)
+      logPass('raw', rawScored)
+
+      if (rawScored[0] && rawScored[0].score >= RAW_CONFIDENT_THRESHOLD) {
+        setCandidates(rawScored.slice(0, 3))
+        navigate(`/patches/${rawScored[0].patch.id}`)
+        return
+      }
+
+      // Nothing convincing, so pay for isolation — matching the way the stored
+      // reference photos were processed, which is the stronger comparison.
+      setStage('isolating')
+      const isolated = await isolatePatch(file)
+
+      setStage('comparing')
+      const { embedding: scanEmbedding, phash: scanPhash } = await analyzePatchPhoto(isolated)
+      const scored = scoreAgainstCollection(scanEmbedding, scanPhash)
+      logPass('isolated', scored)
+
       const top = scored.slice(0, 3)
       setCandidates(top)
 
